@@ -1,0 +1,218 @@
+---
+title: "The WHO enriched dataset from the DRPRG publication"
+author: "Kerri M Malone"
+date: "2023-10-19"
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r setup, include=FALSE}
+
+
+libs_load <- function(x){
+  for( i in x ){
+    print(paste0("Checking for library: ", i))
+    if(require( i , character.only = TRUE ) ){
+      print(paste0(i, " already installed. Loading now"))
+    }
+    #  require returns TRUE invisibly if it was able to load package
+    if( ! require( i , character.only = TRUE ) ){
+      print(paste0(i, " not installed. Trying CRAN for install."))
+      #  If package was not able to be loaded then re-install
+      install.packages( i , dependencies = TRUE )
+      require( i , character.only = TRUE )
+      paste0(i, " installed and loaded successfully")
+    }
+    if ( ! require(i, character.only=TRUE) ) {
+      paste0(i," could not be installed from CRAN. Trying Bionconductor....")
+      BiocManager::install(i)
+      require( i , character.only = TRUE )
+      paste0(i, " installed and loaded successfully")
+    }
+    if ( ! require(i, character.only=TRUE) ) {
+      paste0(i, "could not be installed. Check manually")
+    }
+    #  Load package after installing
+  }
+}
+
+#Load libraries
+libs_load(c("data.table", "tidyverse", 
+            "ggpubr", "gtable",
+            "gtExtras",
+            "reshape2",
+            "gt"))
+
+`%notin%` <- Negate(`%in%`)
+```
+This document summarises the data from https://www.microbiologyresearch.org/content/journal/mgen/10.1099/mgen.0.001081. This study was produced by Michael Hall from Zam's group and describes the development of the DRPRG tool that allows for drug resistance prediction using genome graphs.  
+  
+In doing so, Michael collated and carefully(!) curated an enriched WHO dataset, which is summarised here.
+
+
+
+```{r echo = FALSE}
+### Data was accessed here [https://doi.org/10.5281/zenodo.7819984] on 20231018.
+ROOTDIR = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/drprg-paper-preprint/"
+
+pheno_data = fread(paste0(ROOTDIR, "config/illumina.samplesheet.csv"))
+
+
+n_samples = length(unique(pheno_data$biosample))
+
+WHO_drugs = pheno_data %>%
+  select(-run, -bioproject, -biosample) %>%
+  names()
+
+same_biosample_dff_runIDs = pheno_data %>% 
+  group_by(biosample) %>%
+  mutate(n = n()) %>% 
+  filter(n >1) %>% 
+  select(biosample) %>% 
+  distinct() %>% 
+  nrow()
+
+# pheno_data %>%
+#   select(-run, -bioproject, -biosample) %>%
+#   summarise(across(everything(), ~ list(R = sum(. == "R"), S = sum(. == "S")))) %>%
+#   mutate(phenotype = c("R", "S")) %>%
+#   gt(rowname_col = "phenotype") %>%
+#   gt_theme_nytimes()
+```
+
+### Summary:  
+
+* #### There are `r n_samples` unique biosample IDs in the dataset.  
+(this excludes `r same_biosample_dff_runIDs` instances of duplicated biosample IDs with different runIDs).  
+  
+  
+* There is at least one drug phenotype for each sample for `r length(WHO_drugs)` drugs: `r WHO_drugs`. 
+  
+  
+A breakdown of R/S phenotypes for the samples can be seen in the plot below:  
+
+```{r warning=FALSE, fig.width = 10, fig.height = 5}
+pheno_data %>%
+  select(-run, -bioproject, -biosample) %>%
+  summarise(across(everything(), ~ list(R = sum(. == "R"), S = sum(. == "S")))) %>%
+  mutate(phenotype = c("R", "S")) %>% 
+  pivot_longer(-phenotype, names_to = "antibiotic", values_to = "value") %>%
+  as.data.frame() %>%
+  mutate(value = as.numeric(as.character(value))) %>%
+  mutate(antibiotic = case_when(antibiotic == "para-aminosalicylic_acid" ~ "PAS",
+                                TRUE ~ antibiotic)) %>%
+    ggplot(., aes(x = antibiotic, y = value)) +
+    geom_bar(aes(fill = phenotype), position = "dodge",stat = "identity") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0, size = 8)) +
+  geom_text(
+    stat = "identity", 
+    aes(label = value, group = phenotype),
+    vjust = -1,
+    position = position_dodge(width = 0.9),
+    size = 2.5) +
+  ylab("# samples") +
+  ggtitle("WHO-enriched dataset, DRPRG")
+
+```
+
+## How was this data created?  
+
+
+According to the README.md in the data source, the phenotype data can be found in `config/illumina.samplesheet.csv`.  
+It was synthesized by summarising the experiments found in `config/samplesheets/` using `workflow/notebook/notepad.ipynb`.
+This notebook is large and includes various analyses but the one we are interested in is "Data Collation".
+
+The first steps involved creating a WHO base dataset with two different data sources.  
+
+1. "gentb", which is labelled as WHO correspondance (either a subset or superset of 2.). 
+
+2. "WHO", which I'm assuming is from the latest catalogue. 
+
+3. Lots of data cleaning, resolving discrepancies between the two datasets and extra metadata added using code from https://github.com/mbhall88/WHO-correspondence/blob/main/docs/fill_in_who_samplesheet.py.  
+
+
+Next, data was sequentially added and cleaned data from various publications:
+
+```{r echo = FALSE}
+
+dataset = c("gentb",
+           "WHO",
+           "trisakil", 
+           "Smith",
+           "peker",
+           "merker",
+           "finci",
+           "leah_bdq",
+           "marco_pheno",
+           "lempens_acc") 
+publication = c("WHO correspondance",
+                "https://www.thelancet.com/journals/lanmic/article/PIIS2666-5247(21)00301-3/fulltext",
+                "https://doi.org/10.1080/22221751.2022.2099304",
+                "https://pubmed.ncbi.nlm.nih.gov/33055186/",
+                "https://doi.org/10.1099/mgen.0.000695",
+                "https://doi.org/10.1038/s41467-022-32455-1",
+                "https://pubmed.ncbi.nlm.nih.gov/35907429/",
+                "https://doi.org/10.1101/2022.12.08.519610",
+                "https://doi.org/10.3389/fmicb.2023.1104456",
+                "https://doi.org/10.1016/j.ijid.2020.08.042"
+                )
+pheno_method = c("various",
+                 "various", 
+                 "various", 
+                 "liquid MGIT 960 system (Bactec MGIT SIRE and PZA package inserts; Becton, Dickinson) and solid 7H10 agar proportion method",
+                 "incredibly not noted, only reference in methods is 'All MTB isolates were phenotypically tested for drug susceptibility (phenotypic DST)'",
+                 "various",
+                 "BACTEC MGIT 960 DST and Sensititre MYCOTB MIC plate (binary results reported)",
+                 "BACTEC MGIT 960 DST",
+                 "not stated, just that they were 'according to WHO classification'",
+                 "LJ slopes and 7H11 plates, proportional")
+
+cbind(dataset,
+      publication,
+      pheno_method) %>%
+  as.data.frame() %>%
+  gt() %>%
+  gt_theme_nytimes()
+```
+
+
+Then, the following was noted:
+"Get the BioProject of all BioSamples with antibiogram data in NCBI. Once I have the BioProject, I can .....download the antibiogram table".  
+
+
+This resulted in an extra 1073 samples being added to the superset with phenotypes for at least one drug.  
+
+```{r echo = FALSE}
+bioproj = c("PRJNA353873",
+            "PRJNA413593",
+            "PRJNA438921",
+            "PRJNA557083",
+            "PRJNA650381",
+            "PRJNA663350",
+            "PRJNA717333",
+            "PRJNA824124",
+            "PRJNA834625",
+            "PRJNA888434")
+
+pheno_method_2 = c("MGIT, MICs listed",
+                   "MGIT, MICs listed",
+                   "MGIT, MICs listed",
+                   "MGIT, MICs listed",
+                   "MGIT and proportional agar, MICs listed for both",
+                   "MGIT, MICs listed",
+                   "96 well plate, MICs listed",
+                   "MGIT, MICs listed",
+                   "LJ slopes, MICs listed",
+                   "MGIT, MICs listed")
+
+cbind(bioproj,
+      pheno_method_2) %>%
+  as.data.frame() %>%
+  gt() %>%
+  gt_theme_nytimes()
+
+```
+
+
+
