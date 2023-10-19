@@ -1,0 +1,6 @@
+/.idea
+.DS_Store
+results/
+docs/paper
+tmp/
+workflow/notebook/.ipynb_checkpoints
