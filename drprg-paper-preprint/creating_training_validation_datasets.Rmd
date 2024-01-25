@@ -48,7 +48,7 @@ libs_load(c("tidyverse",
 ROOTDIR = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/"
 
 # Load in files
-cryptic = fread(paste0(ROOTDIR, "data/CRyPTIC_reuse_table_20231107.csv"))
+cryptic = fread(paste0(ROOTDIR, "data/CRyPTIC_reuse_table_20231208.csv"))
 mykrobe = fread(paste0(ROOTDIR, "drprg-paper-preprint/mykrobe.20231121.tsv"))
 validation = fread(paste0(ROOTDIR, "drprg-paper-preprint/validation_set_20231110.pass.tsv"))
 
@@ -77,7 +77,7 @@ names(training_ids_in_common_df) = "ena_run"
 
 
 ```
-There are `r length(ids_in_common)` biosample IDs in common between mykrobe and cryptic training datasets. These are all site 6/Italian samples that were submitted to cryptic.  
+There are `r length(training_ids_in_common)` biosample IDs in common between mykrobe and cryptic training datasets. These are all site 6/Italian samples that were submitted to cryptic.  
 
 I will remove these from the mykrobe dataset and keep the cryptic entries when merging.  
 
@@ -96,14 +96,18 @@ drug_codes = c("AMI", "BDQ", "CAP","CIP","CFZ",
                "RIF", "RFB", "STR")
 
 drug_translation = as.data.frame(cbind(drugs, drug_codes))
+
+drug_phenotype_quality = paste0(drugs, "_phenotype_quality")
 #write_tsv(drug_translation, file = paste0(ROOTDIR, "drprg-paper-preprint/drug_translation_table_20231122.tsv"))
-colnames_order = c("ena_run", "ena_sample", "ena_project", drugs)
+
+colnames_order = c("ena_run", "ena_sample", "ena_project", "dataset", drugs, drug_phenotype_quality)
 
 
 # Find drugs missing in mykrobe and add new column with "U" for undetermined/unknown
 mykrobe_drugs = colnames(mykrobe)[4:19]
 
 mykrobe_missing_drugs = setdiff(drug_translation$drugs, mykrobe_drugs)
+
 
 mykrobe_edited = mykrobe %>%
   dplyr::rename("ena_run" = run) %>%
@@ -114,6 +118,15 @@ mykrobe_edited = mykrobe %>%
 for (col_name in mykrobe_missing_drugs) {
     mykrobe_edited[[col_name]] <- "U"
 }
+
+# Setting phenotype quality to medium for all mykrobe samples
+for (col_name in drug_phenotype_quality) {
+    mykrobe_edited[[col_name]] <- "MEDIUM"
+}
+
+# Adding dataset column
+mykrobe_edited$dataset = "mykrobe"
+
 
 # Now filter out the 501 overlapping IDs. Will take cryptic results for these as truth.
 mykrobe_edited = mykrobe_edited %>%
@@ -127,7 +140,7 @@ mykrobe_edited = mykrobe_edited %>%
 ```{r}
 # Now, find drugs missing in cryptic and add new column with "U" for undetermined/unknown
 cryptic_edited = cryptic %>% 
-  select(ends_with("TYPE"), c("ENA_RUN", "ENA_SAMPLE")) %>%
+  select(ends_with("TYPE"), c("ENA_RUN", "ENA_SAMPLE", ends_with("QUALITY"))) %>%
   rename_all(~ str_remove_all(., "_BINARY_PHENOTYPE")) %>%
   mutate(ena_project = rep("-", nrow(.))) %>%
   dplyr::rename("ena_run" = ENA_RUN) %>%
@@ -151,9 +164,27 @@ cryptic_missing_drugs = setdiff(drugs, cryptic_drugs)
 
 names(cryptic_edited)[1:13] = cryptic_drugs
 
+
+cryptic_edited = cryptic_edited %>%
+  rename_all(~ str_remove_all(., "_PHENOTYPE_QUALITY"))
+
+cryptic_drug_phenotype_quality = paste0(cryptic_drugs, "_phenotype_quality")
+
+names(cryptic_edited)[16:28] = cryptic_drug_phenotype_quality
+
+cryptic_missing_phenotype_quality = setdiff(drug_phenotype_quality, cryptic_drug_phenotype_quality)
+
 for (col_name in cryptic_missing_drugs) {
     cryptic_edited[[col_name]] <- "U"
 }
+
+# Setting missing phenotype quality scores to U
+for (col_name in cryptic_missing_phenotype_quality) {
+    cryptic_edited[[col_name]] <- "U"
+}
+
+# Adding dataset column
+cryptic_edited$dataset = "CRyPTIC_I"
 
 cryptic_edited = cryptic_edited %>%
   select(all_of(colnames_order)) %>%
@@ -166,6 +197,11 @@ Merging cryptic and mykrobe:
 ```{r}
 training_data = as.data.frame(rbind(cryptic_edited, mykrobe_edited))
 validation_ids_in_common = intersect(validation$sample, mykrobe$sample)
+
+
+plot_order = c("rifampicin", "isoniazid", "ethambutol", "pyrazinamide", "amikacin", "kanamycin", "capreomycin", "levofloxacin", "moxifloxacin", "ciprofloxacin", "ofloxacin", "ethionamide", "rifabutin","streptomycin", "pas", "cycloserine", "bedaquiline","clofazimine", "delamanid", "linezolid" )
+
+
 
 #looking at the 131 validation samples that are in training:
 training_data %>% filter(ena_sample %in% validation_ids_in_common)%>%
@@ -396,7 +432,7 @@ Summary text file.
 file_conn <- file(paste0(ROOTDIR, "drprg-paper-preprint/summary_training_validation_datasets_20231122.txt"), open = "w")
 
 content <- c("Training data: 25033 samples, file = training_data_20231122.tsv",
-             "Validation data: 894 samples, file = validation_set_20231110.pass.tsv",
+             "Validation data: 8914 samples, file = validation_set_20231110.pass.tsv",
              "Training data generated from CRyPTIC data (CRyPTIC_reuse_table_20231107.csv) and mykrobe data (mykrobe.20231121.tsv). 501 samples removed due to duplication between the sets.",
              "131 samples removed from the resulting training data as they are part of the validation set")
 writeLines(content, file_conn)
