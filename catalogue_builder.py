@@ -6,14 +6,9 @@ import numpy as np
 
 class BuildCatalogue:
     """
-    Class for building a mutations catalogue using a Fisher's test on lone-occuring
-    mutations.
 
-
-    N.B - this is compatible with CRyPTIC tables only (merges made on 'UNIQUEID', for example) - but can
-    easily be adapted
     """
-
+# remove all references to samples and get rid of joins - all my relevant sample IDs will be in mutations df
     def __init__(self, samples, mutations, FRS_threshold, hardcoded=None):
         # apply FRS threshold to mutations
         mutations = mutations[(mutations.FRS >= FRS_threshold)]
