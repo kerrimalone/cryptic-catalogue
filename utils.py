@@ -184,11 +184,14 @@ def CombinedDataTable(all):
 
 def build_S_arr(self):
     # remove mutations predicted as susceptible from df (to potentially proffer additional, effective solos)
-    mutations = self.all_data_frs_filtered[~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.S)]
-
+    #mutations = self.all_data_frs_filtered[~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.S)]
+    mutations = self.all_data_frs_filtered[
+    (~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.S)) &
+    (~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.R)) &
+    (~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.U))
+    ]
     # extract samples with only 1 mutation
     solos = mutations.groupby("ena_run").filter(lambda x: len(x) == 1)
-
 
     # method is jammed - end here.
     if len(solos) == 0:
@@ -208,6 +211,7 @@ def build_S_arr(self):
         # print(f"{s_iters}: {mut}")
         pheno = fisher_binary(solos, mut)
         #print(f"this prediction: {pheno}")
+        #print(f"evid: {pheno['evid']}")
         if pheno["pred"] == "S":
             #print(f"adding to self.S")
             # if susceptible, add mutation to phenotype array
@@ -216,8 +220,12 @@ def build_S_arr(self):
         if pheno["pred"] == "S":
             S_count += 1
         if pheno["pred"] == "U":
+            self.U.append({"mut": mut, "evid": pheno["evid"]})
+            s_iters += 1
             U_count += 1
         if pheno["pred"] == "R":
+            self.R.append({"mut": mut, "evid": pheno["evid"]})
+            s_iters += 1
             R_count += 1
 
 
@@ -235,10 +243,12 @@ def mop_up(self):
     # remove mutations predicted as susceptible from df (to potentially proffer additional, effective solos)
     no_S_mutations = self.all_data_frs_filtered[~self.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in self.S)]
 
+
+    print(f" There are {len(self.S)} mutations in self.S")
     # extract samples with only 1 mutation
     mop_solos = no_S_mutations.groupby("ena_run").filter(lambda x: len(x) == 1)
-    #print(f"The number of unique R/U mutations is {len(mop_solos[~mop_solos.GENE_MUT.isna()].GENE_MUT.unique())}")
 
+    print(f"Number of mutations considered for finding R and U: {len(mop_solos)}")
     # for non WT or synonymous mutations
     for mut in mop_solos[~mop_solos.GENE_MUT.isna()].GENE_MUT.unique():
         # determine phenotype of mutation using Fisher's test and add mutation to phenotype array (should be no S)
@@ -410,8 +420,10 @@ def PiezoPredict(iso_df, catalogue_file, out_csv_matrix_file, out_text_error_fil
         else:
             if "U" in mut_predictions:
                 if U_to_R:
+                    #print(f"Converting U to R for {var}")
                     predictions.append("R")
                 elif U_to_S:
+                    #print(f"Converting U to S for {var}")
                     predictions.append("S")
                 else:
                     predictions.append("U")

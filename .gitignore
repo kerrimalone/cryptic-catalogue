@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+/data/training/
+/data/validation/
+/data/CRyPTIC_reuse_table_20231208.csv
+

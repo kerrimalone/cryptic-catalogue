@@ -1,0 +1,505 @@
+---
+title: "Creating training and validation datasets"
+author: "Kerri M Malone"
+date: "2023-11-22"
+output: html_document
+---
+
+```{r}
+libs_load <- function(x){
+  for( i in x ){
+    print(paste0("Checking for library: ", i))
+    if(require( i , character.only = TRUE ) ){
+      print(paste0(i, " already installed. Loading now"))
+    }
+    #  require returns TRUE invisibly if it was able to load package
+    if( ! require( i , character.only = TRUE ) ){
+      print(paste0(i, " not installed. Trying CRAN for install."))
+      #  If package was not able to be loaded then re-install
+      install.packages( i , dependencies = TRUE )
+      require( i , character.only = TRUE )
+      paste0(i, " installed and loaded successfully")
+    }
+    if ( ! require(i, character.only=TRUE) ) {
+      paste0(i," could not be installed from CRAN. Trying Bionconductor....")
+      BiocManager::install(i)
+      require( i , character.only = TRUE )
+      paste0(i, " installed and loaded successfully")
+    }
+    if ( ! require(i, character.only=TRUE) ) {
+      paste0(i, "Could not be installed. Check manually with github?")
+    }
+    #  Load package after installing
+  }
+}
+
+#Load libraries
+libs_load(c("tidyverse", 
+            "data.table",
+            "readr",
+            "UpSetR"))
+
+`%notin%` <- Negate(`%in%`)
+
+```
+
+
+```{r echo = FALSE}
+ROOTDIR = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/"
+
+# Load in files
+cryptic = fread(paste0(ROOTDIR, "data/CRyPTIC_reuse_table_20231208.csv"))
+mykrobe = fread(paste0(ROOTDIR, "drprg-paper-preprint/mykrobe.20231121.tsv"))
+validation = fread(paste0(ROOTDIR, "drprg-paper-preprint/validation_set_20231110.pass.tsv"))
+
+```
+We have three datasets at the moment: cryptic, mykrobe and validation.  
+Cryptic and mykrobe will be combined to make the training data.  
+Will check for any sample dupes between the training data and validation.  
+
+
+TODO:   
+1. Check for any overlap between mykrobe and cryptic biosample IDs before combining. 
+2. Phenotype missingness between datasets for now will remain. We can talk about whether to assume susceptibility or not. 
+3. Create upset plots to assess phenotype representation between the train and validation data. Can then assess whether to stratify.
+
+1. Make training dataset by combining cryptic and mykrobe:   
+```{r}
+# First check that biosample IDs are unique to each dataset
+mykrobe_ids = mykrobe %>% pull(sample)
+cryptic_ids = cryptic %>% pull(ENA_SAMPLE)
+
+training_ids_in_common = intersect(mykrobe_ids, cryptic_ids)
+training_ids_in_common_df = as.data.frame(training_ids_in_common)
+names(training_ids_in_common_df) = "ena_run"
+
+# write_tsv(training_ids_in_common_df, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_samples_excluded_duplicated_20231122.tsv"))
+
+
+```
+There are `r length(training_ids_in_common)` biosample IDs in common between mykrobe and cryptic training datasets. These are all site 6/Italian samples that were submitted to cryptic.  
+
+I will remove these from the mykrobe dataset and keep the cryptic entries when merging.  
+
+Now, need to make sure that colnames match between the sets before merging.  
+
+```{r}
+drugs = c("amikacin", "bedaquiline", "capreomycin", "ciprofloxacin", "clofazimine", "cycloserine", 
+          "delamanid", "ethambutol", "ethionamide", "isoniazid", "kanamycin", "levofloxacin", 
+          "linezolid", "moxifloxacin", "ofloxacin", "pas", "pyrazinamide", "rifabutin",
+          "rifampicin", "streptomycin")
+
+drug_codes = c("AMI", "BDQ", "CAP","CIP","CFZ", 
+               "CS", "DLM", "EMB", "ETH", 
+               "INH", "KAN", "LEV", "LZD", 
+               "MXF", "OXF", "PAS", "PZA",
+               "RIF", "RFB", "STR")
+
+drug_translation = as.data.frame(cbind(drugs, drug_codes))
+
+drug_phenotype_quality = paste0(drugs, "_phenotype_quality")
+#write_tsv(drug_translation, file = paste0(ROOTDIR, "drprg-paper-preprint/drug_translation_table_20231122.tsv"))
+
+colnames_order = c("ena_run", "ena_sample", "ena_project", "dataset", drugs, drug_phenotype_quality)
+
+
+# Find drugs missing in mykrobe and add new column with "U" for undetermined/unknown
+mykrobe_drugs = colnames(mykrobe)[4:19]
+
+mykrobe_missing_drugs = setdiff(drug_translation$drugs, mykrobe_drugs)
+
+
+mykrobe_edited = mykrobe %>%
+  dplyr::rename("ena_run" = run) %>%
+  dplyr::rename("ena_sample" = sample) %>%
+  dplyr::rename("ena_project" = project)
+
+  
+for (col_name in mykrobe_missing_drugs) {
+    mykrobe_edited[[col_name]] <- "U"
+}
+
+# Setting phenotype quality to medium for all mykrobe samples
+for (col_name in drug_phenotype_quality) {
+    mykrobe_edited[[col_name]] <- "MEDIUM"
+}
+
+# Adding dataset column
+mykrobe_edited$dataset = "mykrobe"
+
+
+# Now filter out the 501 overlapping IDs. Will take cryptic results for these as truth.
+mykrobe_edited = mykrobe_edited %>%
+  filter(ena_sample %notin% training_ids_in_common) %>%
+  select(all_of(colnames_order))
+
+```
+
+
+
+```{r}
+# Now, find drugs missing in cryptic and add new column with "U" for undetermined/unknown
+cryptic_edited = cryptic %>% 
+  select(ends_with("TYPE"), c("ENA_RUN", "ENA_SAMPLE", ends_with("QUALITY"))) %>%
+  rename_all(~ str_remove_all(., "_BINARY_PHENOTYPE")) %>%
+  mutate(ena_project = rep("-", nrow(.))) %>%
+  dplyr::rename("ena_run" = ENA_RUN) %>%
+  dplyr::rename("ena_sample" = ENA_SAMPLE)
+
+
+
+cryptic_drug_codes = colnames(cryptic %>% 
+  select(ends_with("TYPE")) %>%
+  rename_all(~ str_remove_all(., "_BINARY_PHENOTYPE")))
+
+cryptic_drugs = cryptic_drug_codes %>%
+  as.data.frame() %>%
+  dplyr::rename("drug_codes" = ".") %>%
+  merge(., drug_translation, by = "drug_codes") %>%
+  pull(drugs)
+
+
+cryptic_missing_drugs = setdiff(drugs, cryptic_drugs)
+
+
+names(cryptic_edited)[1:13] = cryptic_drugs
+
+
+cryptic_edited = cryptic_edited %>%
+  rename_all(~ str_remove_all(., "_PHENOTYPE_QUALITY"))
+
+cryptic_drug_phenotype_quality = paste0(cryptic_drugs, "_phenotype_quality")
+
+names(cryptic_edited)[16:28] = cryptic_drug_phenotype_quality
+
+cryptic_missing_phenotype_quality = setdiff(drug_phenotype_quality, cryptic_drug_phenotype_quality)
+
+for (col_name in cryptic_missing_drugs) {
+    cryptic_edited[[col_name]] <- "U"
+}
+
+# Setting missing phenotype quality scores to U
+for (col_name in cryptic_missing_phenotype_quality) {
+    cryptic_edited[[col_name]] <- "U"
+}
+
+# Adding dataset column
+cryptic_edited$dataset = "CRyPTIC_I"
+
+cryptic_edited = cryptic_edited %>%
+  select(all_of(colnames_order)) %>%
+  mutate_all(~replace_na(., "U"))
+
+```
+
+
+Merging cryptic and mykrobe:  
+```{r}
+training_data = as.data.frame(rbind(cryptic_edited, mykrobe_edited))
+validation_ids_in_common = intersect(validation$sample, mykrobe$sample)
+
+
+plot_order = c("rifampicin", "isoniazid", "ethambutol", "pyrazinamide", "amikacin", "kanamycin", "capreomycin", "levofloxacin", "moxifloxacin", "ciprofloxacin", "ofloxacin", "ethionamide", "rifabutin","streptomycin", "pas", "cycloserine", "bedaquiline","clofazimine", "delamanid", "linezolid" )
+
+
+
+#looking at the 131 validation samples that are in training:
+training_data %>% filter(ena_sample %in% validation_ids_in_common)%>%
+    select(-ena_run, -ena_project, -ena_sample) %>%
+    reframe(across(everything(), ~ list(R = sum(. == "R"), S = sum(. == "S"), U = sum(. == "U")))) %>%
+    mutate(phenotype = c("R", "S", "U")) %>% 
+    pivot_longer(-phenotype, names_to = "antibiotic", values_to = "value") %>%
+    as.data.frame() %>%
+    mutate(value = as.numeric(as.character(value))) %>%
+    ggplot(., aes(x = factor(antibiotic, levels = plot_order), y = value)) +
+    geom_bar(aes(fill = phenotype), position = "dodge",stat = "identity") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0, size = 8)) +
+    geom_text(
+        stat = "identity", 
+        aes(label = value, group = phenotype),
+        vjust = -1,
+        position = position_dodge(width = 0.9),
+        size = 2.5)
+
+# Will remove them from training, won't upset anything to much
+
+training_data = training_data %>%
+  filter(ena_sample %notin% validation_ids_in_common)
+#write_tsv(training_data, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_20240125.tsv"))
+
+validation_ids_in_common_df = as.data.frame(validation_ids_in_common)
+names(validation_ids_in_common_df) = "ena_run"
+# write_tsv(validation_ids_in_common_df, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_samples_excluded_validation_duplicated_20231122.tsv"))
+
+
+
+### Make phenotype table for input for building catalogue
+# sample_info =  training_data %>%
+drug_subset = training_data[,c(1:24)]
+quality_subset =  training_data[,c(1:4,25:44)]
+
+dim(drug_subset) == dim(quality_subset)
+
+drug_subset_pivot = drug_subset %>%
+    pivot_longer(cols = -c(ena_run,ena_sample,ena_project, dataset), names_to = "drug", values_to = "phenotype") %>%
+  mutate(merge = paste0(ena_run, "_", drug))
+
+
+quality_subset_pivot = quality_subset %>%
+    pivot_longer(cols = -c(ena_run,ena_sample,ena_project, dataset), names_to = "drug", values_to = "phenotype_quality") %>%
+  mutate(drug = str_remove(drug, "_phenotype_quality")) %>%
+  mutate(merge = paste0(ena_run, "_", drug))
+
+
+training_data_long = drug_subset_pivot %>%
+  merge(., quality_subset_pivot, by = "merge") %>% 
+  select(ena_run.x, ena_sample.x, ena_project.x, dataset.x, drug.x, phenotype, phenotype_quality) %>% 
+    rename_with(~ gsub(".x", "", .), everything())
+
+#write_tsv(training_data_long, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_phenotypes_20240125.tsv"))
+
+### Make long phenotype table for input for validation
+validation_long = validation %>%
+  mutate_at(vars(amikacin:thioacetazone), ~ ifelse(. == "", "U", .)) %>%
+  mutate(dataset = rep("validation", nrow(validation))) %>%
+  dplyr::rename("ena_run" = run) %>%
+  dplyr::rename("ena_sample" = sample) %>%
+  dplyr::rename("ena_project" = project) %>%
+  dplyr::rename("pas" = `para-aminosalicylic_acid`) %>%
+  mutate(ethionamide = rep("U", nrow(validation))) 
+
+validation_drug_subset = validation_long[,c(2,1,3,26,4:12, 14:24)]
+
+validation_quality = validation_drug_subset %>%
+    rename_at(vars(amikacin:streptomycin), ~paste0(., "_phenotype_quality")) %>%
+    mutate_at(vars(amikacin_phenotype_quality:streptomycin_phenotype_quality), ~ "U")
+
+
+
+validation_subset_pivot = validation_drug_subset %>%
+    pivot_longer(cols = -c(ena_run,ena_sample,ena_project, dataset), names_to = "drug", values_to = "phenotype") %>%
+  mutate(merge = paste0(ena_run, "_", drug))
+
+
+validation_quality_subset_pivot = validation_quality %>%
+    pivot_longer(cols = -c(ena_run,ena_sample,ena_project, dataset), names_to = "drug", values_to = "phenotype_quality") %>%
+  mutate(drug = str_remove(drug, "_phenotype_quality")) %>%
+  mutate(merge = paste0(ena_run, "_", drug))
+
+
+validation_long = validation_subset_pivot %>%
+  merge(., validation_quality_subset_pivot, by = "merge") %>% 
+  select(ena_run.x, ena_sample.x, ena_project.x, dataset.x, drug.x, phenotype, phenotype_quality) %>% 
+    rename_with(~ gsub(".x", "", .), everything())
+
+#write_tsv(validation_long, file = paste0(ROOTDIR, "drprg-paper-preprint/validation_data_phenotypes_20240207.tsv"))
+
+```
+
+
+Bar plot for training data. 
+
+```{r}
+n_samples = nrow(training_data)
+
+plot_order = c("rifampicin", "isoniazid", "ethambutol", "pyrazinamide", "amikacin", "kanamycin", "capreomycin", "levofloxacin", "moxifloxacin", "ciprofloxacin", "ofloxacin", "ethionamide", "rifabutin","streptomycin", "pas", "cycloserine", "bedaquiline","clofazimine", "delamanid", "linezolid" )
+
+
+training_data_barplot = training_data %>%
+  select(-ena_run, -ena_project, -ena_sample) %>%
+  reframe(across(everything(), ~ list(R = sum(. == "R"), S = sum(. == "S"), U = sum(. == "U")))) %>%
+  mutate(phenotype = c("R", "S", "U")) %>% 
+  pivot_longer(-phenotype, names_to = "antibiotic", values_to = "value") %>%
+  as.data.frame() %>%
+  mutate(value = as.numeric(as.character(value))) %>%
+    ggplot(., aes(x = factor(antibiotic, levels = plot_order), y = value)) +
+    geom_bar(aes(fill = phenotype), position = "dodge",stat = "identity") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0, size = 8)) +
+  geom_text(
+    stat = "identity", 
+    aes(label = value, group = phenotype),
+    vjust = -1,
+    position = position_dodge(width = 0.9),
+    size = 2.5) +
+  ylab("# samples") +
+  xlab("") + 
+  labs(title = "Training dataset",
+       subtitle = paste0("n = ", n_samples, " samples"),
+       caption = "There is at least one drug phenotype for each sample") +
+  scale_fill_manual(values = c("#ae0e52", "#6d979c", "grey90"))
+
+ggsave(training_data_barplot, filename = paste0(ROOTDIR, "drprg-paper-preprint/training_data_barplot_20231122.pdf"),
+       width = 12.2, height = 6.1)
+
+```
+Make upset plot for resistant phenotypes by regimen. 
+```{r}
+# MDR = RIF + INH R
+mdr_plotdata = training_data %>%
+  filter(rifampicin == "R" & isoniazid == "R")
+
+
+
+mdr_columns_to_transform = mdr_plotdata %>%
+  select(-ena_project, -ena_run) %>%
+  colnames()
+
+
+mdr_plotdata = mdr_plotdata %>%
+  mutate_at(all_of(columns_to_transform), 
+            list(~case_when(. == "R" ~ 1,
+                             TRUE ~ 0))) %>%
+  select(all_of(plot_order))
+n_samples_mdr = nrow(mdr_plotdata)
+
+pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/MDR_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+UpSetR::upset(mdr_plotdata, keep.order = T, nsets = 500, nintersects = 84, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
+ = "#ae0e52")
+grid.text("MDR samples", x = 0.65, y = 0.95,
+          gp = gpar(fontsize = 20))
+grid.text(paste0("n = ", n_samples_mdr), x = 0.65, y = 0.91,
+          gp = gpar(fontsize = 13))
+grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
+          gp = gpar(fontsize = 9))
+dev.off()
+
+
+# Pre-XDR TB: caused by an organism that is resistant to isoniazid, rifampin, and a fluoroquinolone OR by an organism that is resistant to isoniazid, rifampin, and a second-line injectable (amikacin, capreomycin, and kanamycin)
+# pre-XDR = RIF + INH + FQ R
+preXDR_FQ_plotdata = training_data %>%
+  filter(rifampicin == "R" & isoniazid == "R" & (moxifloxacin == "R" | ofloxacin == "R" | levofloxacin == "R" | ciprofloxacin == "R"))
+
+
+
+preXDR_FQ_columns_to_transform = preXDR_FQ_plotdata %>%
+  select(-ena_project, -ena_run) %>%
+  colnames()
+
+
+preXDR_FQ_plotdata = preXDR_FQ_plotdata %>%
+  mutate_at(all_of(columns_to_transform), 
+            list(~case_when(. == "R" ~ 1,
+                             TRUE ~ 0))) %>%
+  select(all_of(plot_order))
+n_samples_preXDR_FQ = nrow(preXDR_FQ_plotdata)
+
+pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/preXDR_FQ_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+UpSetR::upset(preXDR_FQ_plotdata, keep.order = T, nsets = 500, nintersects = 38, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
+ = "#ae0e52")
+grid.text("preXDR samples (FQ resistant)", x = 0.65, y = 0.95,
+          gp = gpar(fontsize = 20))
+grid.text(paste0("n = ", n_samples_preXDR_FQ), x = 0.65, y = 0.91,
+          gp = gpar(fontsize = 13))
+grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
+          gp = gpar(fontsize = 9))
+dev.off()
+
+
+
+# pre-XDR = RIF + INH + AG R
+preXDR_AG_plotdata = training_data %>%
+  filter(rifampicin == "R" & isoniazid == "R" & (kanamycin == "R" | amikacin == "R" | capreomycin == "R"))
+
+
+
+preXDR_AG_columns_to_transform = preXDR_AG_plotdata %>%
+  select(-ena_project, -ena_run) %>%
+  colnames()
+
+
+preXDR_AG_plotdata = preXDR_AG_plotdata %>%
+  mutate_at(all_of(columns_to_transform), 
+            list(~case_when(. == "R" ~ 1,
+                             TRUE ~ 0))) %>%
+  select(all_of(plot_order))
+
+n_samples_preXDR_AG = nrow(preXDR_AG_plotdata)
+
+pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/preXDR_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+UpSetR::upset(preXDR_AG_plotdata, keep.order = T, nsets = 500, nintersects = 36, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	= "#ae0e52")
+grid.text("preXDR samples (AG resistant)", x = 0.65, y = 0.95,
+          gp = gpar(fontsize = 20))
+grid.text(paste0("n = ", n_samples_preXDR_AG), x = 0.65, y = 0.91,
+          gp = gpar(fontsize = 13))
+grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
+          gp = gpar(fontsize = 9))
+dev.off()
+
+
+# Extensively drug-resistant TB (XDR TB) is a rare type of multidrug-resistant tuberculosis (MDR TB) that is resistant to isoniazid, rifampin, a fluoroquinolone, and a second-line injectable (amikacin, capreomycin, and kanamycin) OR isoniazid, rifampin, a fluoroquinolone, and bedaquiline or linezolid.
+XDR_plotdata = training_data %>%
+  filter(rifampicin == "R" & isoniazid == "R" & (moxifloxacin == "R" | ofloxacin == "R" | levofloxacin == "R" | ciprofloxacin == "R") & (kanamycin == "R" | amikacin == "R" | capreomycin == "R"))
+
+
+
+XDR_columns_to_transform = XDR_plotdata %>%
+  select(-ena_project, -ena_run) %>%
+  colnames()
+
+
+XDR_plotdata = XDR_plotdata %>%
+  mutate_at(all_of(columns_to_transform), 
+            list(~case_when(. == "R" ~ 1,
+                             TRUE ~ 0))) %>%
+  select(all_of(plot_order))
+
+n_samples_XDR= nrow(XDR_plotdata)
+
+pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/XDR_FQ_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+UpSetR::upset(XDR_plotdata, keep.order = T, nsets = 500, nintersects = 39, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
+ = "#ae0e52")
+grid.text("XDR samples (FQ + AG resistant)", x = 0.65, y = 0.95,
+          gp = gpar(fontsize = 20))
+grid.text(paste0("n = ", n_samples_XDR), x = 0.65, y = 0.91,
+          gp = gpar(fontsize = 13))
+grid.text("interactions with >3 isolates displayed", x = 0.65, y = 0.88,
+          gp = gpar(fontsize = 9))
+dev.off()
+
+
+
+
+
+XDR_BL_plotdata = training_data %>%
+  filter(rifampicin == "R" & isoniazid == "R" & (moxifloxacin == "R" | ofloxacin == "R" | levofloxacin == "R" | ciprofloxacin == "R") & (bedaquiline == "R" | linezolid == "R"))
+
+
+
+XDR_BL_columns_to_transform = XDR_BL_plotdata %>%
+  select(-ena_project, -ena_run) %>%
+  colnames()
+
+
+XDR_BL_plotdata = XDR_BL_plotdata %>%
+  mutate_at(all_of(columns_to_transform), 
+            list(~case_when(. == "R" ~ 1,
+                             TRUE ~ 0))) %>%
+  select(all_of(plot_order))
+
+n_samples_XDR_BL = nrow(XDR_BL_plotdata)
+
+pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/XDR_FQ_BDQ_LZD_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+UpSetR::upset(XDR_BL_plotdata, keep.order = T, nsets = 500, nintersects = 31, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
+ = "#ae0e52")
+grid.text("XDR samples (FQ + BDQ/LZD resistant)", x = 0.65, y = 0.95,
+          gp = gpar(fontsize = 20))
+grid.text(paste0("n = ", n_samples_XDR_BL), x = 0.65, y = 0.91,
+          gp = gpar(fontsize = 13))
+grid.text("interactions with >2 isolates displayed", x = 0.65, y = 0.88,
+          gp = gpar(fontsize = 9))
+dev.off()
+```
+Summary text file. 
+```{r}
+file_conn <- file(paste0(ROOTDIR, "drprg-paper-preprint/summary_training_validation_datasets_20231122.txt"), open = "w")
+
+content <- c("Training data: 25033 samples, file = training_data_20240125.tsv (older version:training_data_20231122.tsv)",
+             "Validation data: 8914 samples, file = validation_set_20231110.pass.tsv",
+             "Training data generated from CRyPTIC data (CRyPTIC_reuse_table_20231107.csv) and mykrobe data (mykrobe.20231121.tsv). 501 samples removed due to duplication between the sets.",
+             "131 samples removed from the resulting training data as they are part of the validation set",
+             "Added 20240125: Phenotype table in long format for running with catologue builder code (training_data_phenotypes_20240125.tsv). Wide table was edited to include phenotype quality metrics (training_data_20240125.tsv)")
+writeLines(content, file_conn)
+close(file_conn)
+```
