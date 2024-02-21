@@ -1,0 +1,16 @@
+{
+  "amikacin": "AMI",
+  "capreomycin": "CAP",
+  "ciprofloxacin": "CIP",
+  "delamanid": "DLM",
+  "ethambutol": "EMB",
+  "ethionamide": "ETH",
+  "isoniazid": "INH",
+  "kanamycin": "KAN",
+  "levofloxacin": "LEV",
+  "linezolid": "LZD",
+  "moxifloxacin": "MXF",
+  "ofloxacin": "OFX",
+  "rifampicin": "RIF",
+  "streptomycin": "STM"
+}
