@@ -3,6 +3,7 @@ import csv
 
 from piezo import catalogue
 from sklearn.metrics import confusion_matrix
+import json
 import piezo
 import matplotlib.pyplot as plt
 import seaborn as sns

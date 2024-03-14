@@ -1,7 +1,6 @@
 #%%
 
 import sys
-
 sys.path.append("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue")
 from utils import *
 
@@ -418,74 +417,30 @@ class PredictResistance:
         return cm
 
 
-
-# sens = 100 * (cm[0][0] / (cm[0][0] + cm[0][1]))
-# spec = 100 * (cm[1][1] / (cm[1][1] + cm[1][0]))
-# cov = 100 * (len(samples) - cm[0][2] - cm[1][2]) / len(samples)
-# df_cm = pd.DataFrame(cm, index=["R", "S"], columns=["R", "S", "U"])
-#
-# plt.figure(figsize=(8, 5))
-# sns.heatmap(
-#     df_cm, annot=True, cbar=False, fmt="g", cmap="Greens", annot_kws={"fontsize": 24}
-# )
-# plt.gca().invert_yaxis()
-# plt.xticks(fontsize=12)
-# plt.yticks(fontsize=12)
-# plt.xlabel("Predicted", fontsize=14)
-# plt.ylabel("True", fontsize=14)
-# plt.show()
-
-
-#
-#
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="Process some integers.")
-#     parser.add_argument("drug", type=str, help="Enter the drug name of interest (in format relevant to "
-#                                                "genes_file 'drug' column and 'drug' column in mutations_file)")
-#     parser.add_argument("genes_file", type=str, help="path to the file containing a list of genes "
-#                                                      "to be investigated. File columns required: [drug] [gene]")
-#     parser.add_argument("mutations_file", type=str, help="path to the mutations file")
-#     #parser.add_argument("genomes_file", type=str, help="path to the genomes file")
-#     parser.add_argument("phenotypes_file", type=str, help="Path to the phenotypes file. Phenotypes file. "
-#                                                           "Must have the following columns: ena_run, DRUG, "
-#                                                           "phenotype, phenotype_QUALITY")
-#     parser.add_argument("phenotype_quality", type=check_phenotype_quality_type, help="Phenotype quality: "
-#                                                                                "HIGH, MEDIUM, or LOW")
-#     parser.add_argument("genbank_ref", type=str, help="genbank reference")
-#     parser.add_argument("catalogue_name", type=str, help="name of the catalogue")
-#     parser.add_argument("catalogue_version", type=str, help="version of the catalogue")
-#     parser.add_argument("piezo_wildcards", type=str, help="Piezo wildcards")
-#     parser.add_argument("output_csv_file", type=str, help="path to the output CSV file")
-#
-#     args = parser.parse_args()
-#     processor = DataProcessor(args.mutations_file, args.genomes_file, args.phenotypes_file, args.genbank_ref, args.catalogue_name, args.catalogue_version, args.drug, args.piezo_wildcards, args.genes_file, args.output_csv_file)
-#     processor.process_input_data()
-
-#%%%
+#%%
 import traceback
 
-
-#drugs_mutations = {
-    # "amikacin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_eis_rrs_subset.csv",
-    # "capreomycin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_rrs_tlyA_subset.csv",
-    # "ciprofloxacin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_gyrA_subset.csv",
-    # "delamanid": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_ddn_subset.csv",
-    # "ethambutol": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_embA_embB_subset.csv",
-    # "ethionamide": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-    # "isoniazid": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
-    # "kanamycin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_eis_rrs_subset.csv",
-    #"levofloxacin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-    #"linezolid": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
-    #"moxifloxacin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-    #"ofloxacin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv"
-    #"pyrazinamide": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_pncA_subset.csv",
-    # "rifampicin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_rpoB_subset.csv",
-    # "streptomycin": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
-#}
-
 drugs_mutations = {
-    "linezolid": "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv"
+    "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
+    "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
+    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
+    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
+    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
+    "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "pyrazinamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_pncA_subset.csv",
+    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
+    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 }
+
+with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
+    drug_codes = json.load(f)
+
 
 # Iterate over each drug and its mutations file
 for drug, mutations_file in drugs_mutations.items():
@@ -503,71 +458,30 @@ for drug, mutations_file in drugs_mutations.items():
 
         phenotypes = phenotypes_processor.process_input_data()
 
-        for threshold in [1, 0.8, 0.6]:
-            summarytable_processor = CreateInputDataSummaryTable(mutations_df=mutations,
-                                                                 filtered_phenotypes_df=phenotypes,
-                                                                 frs_threshold=threshold,
-                                                                 drug = drug,
-                                                                 out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results")
-
-            summarytable = summarytable_processor.create_summary_table()
-
-        build_cat_processor = BuildResCatalogueProcessor(mutations_df=mutations,
-                                                         filtered_phenotypes_df=phenotypes,
-                                                         genbank_file="NC00962.3",
-                                                         drug=drug,
-                                                         frs_thresholds=[1.0, 0.8, 0.6],
-                                                         catalogue_version="1.1",
-                                                         out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-                                                         hardcoded=True,
-                                                         piezo_wildcards=True)
-
-        all_data = build_cat_processor.return_all_data()
-        build_cat_processor.build_catalogue()
+        # Find the corresponding code for the drug
+        if drug in drug_codes:
+            drug_short = drug_codes[drug]
+            print("Short code for", drug, "is", drug_short)
+        else:
+            print("Drug code not found")
+            continue
 
 
+        #WHOcat
         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-            catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-
-            # Create the PredictResistance processor
-            prediction_processor = PredictResistance(mutations_df=mutations,
-                                                     phenotypes_df=phenotypes,
-                                                     catalogue_file=catalogue_file,
-                                                     catalogue_name="training_FRS1.0_catalogue",
-                                                     drug=drug,
+            print(f"Running WHO cat prediction with threshold {prediction_frs_threshold}")
+            prediction_processor = PredictResistance(mutations, phenotypes,
+                                                     "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv",
+                                                     catalogue_name="WHOv2.0",
+                                                     drug=drug_short,
                                                      frs_threshold=prediction_frs_threshold,
-                                                     out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-                                                     U_to_S=True)
+                                                     out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/WHOv2")
 
             predictions = prediction_processor.predict_resistance()
+            print(F"Done with WHO_catalogue and FRS: {prediction_frs_threshold}")
 
-        for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-            catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-            prediction_processor = PredictResistance(mutations_df=mutations,
-                                                     phenotypes_df=phenotypes,
-                                                     catalogue_file=catalogue_file,
-                                                     catalogue_name="training_FRS0.8_catalogue",
-                                                     drug=drug,
-                                                     frs_threshold=prediction_frs_threshold,
-                                                     out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-                                                     U_to_S=True)
+        print(F"All done with {drug}")
 
-            predictions = prediction_processor.predict_resistance()
-
-
-        for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-            catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-            prediction_processor = PredictResistance(mutations_df=mutations,
-                                                     phenotypes_df=phenotypes,
-                                                     catalogue_file=catalogue_file,
-                                                     catalogue_name="training_FRS0.6_catalogue",
-                                                     drug=drug,
-                                                     frs_threshold=prediction_frs_threshold,
-                                                     out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-                                                     U_to_S=True)
-
-            predictions = prediction_processor.predict_resistance()
-        print(f"Done with {drug}")
     except Exception as e:
         print(f"An error occurred while processing {drug}: {e}")
         traceback.print_exc()
@@ -576,104 +490,96 @@ for drug, mutations_file in drugs_mutations.items():
 
 
 #%%%
-#WHO cat
-for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-    prediction_processor = PredictResistance(mutations, phenotypes,
-                                             "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-GTB-PCI-2021.7_v1.0_GARC1_RUS.csv",
-                                             catalogue_name="WHO_catalogue",
-                                             drug="ETH",
-                                             frs_threshold=prediction_frs_threshold,
-                                             out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results")
 
-    predictions = prediction_processor.predict_resistance()
-    print(F"Done with WHO_catalogue and FRS: {prediction_frs_threshold}")
-#%%%
-
-
-
-
-
-
-
-
-# #%%
-# print(build_cat_processor.all_data_frs_filtered[build_cat_processor.all_data_frs_filtered['GENE_MUT'] == "katG@Y155C"])
+#
+#         for threshold in [1, 0.8, 0.6]:
+#             summarytable_processor = CreateInputDataSummaryTable(mutations_df=mutations,
+#                                                                  filtered_phenotypes_df=phenotypes,
+#                                                                  frs_threshold=threshold,
+#                                                                  drug=drug,
+#                                                                  out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results")
+#
+#             summarytable = summarytable_processor.create_summary_table()
+#
+#         build_cat_processor = BuildResCatalogueProcessor(mutations_df=mutations,
+#                                                          filtered_phenotypes_df=phenotypes,
+#                                                          genbank_file="NC00962.3",
+#                                                          drug=drug,
+#                                                          frs_thresholds=[1.0, 0.8, 0.6],
+#                                                          catalogue_version="1.1",
+#                                                          out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
+#                                                          hardcoded=True,
+#                                                          piezo_wildcards=True)
+#
+#         all_data = build_cat_processor.return_all_data()
+#         build_cat_processor.build_catalogue()
 #
 #
-# no_S_mutations = build_cat_processor.all_data_frs_filtered[~build_cat_processor.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in build_cat_processor.S)].copy()
-# #%%
-# print(len(no_S_mutations))
-# solos = no_S_mutations.groupby("ena_run").filter(lambda x: len(x) == 1)
+#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
+#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
 #
-# #%%
-# print(len(solos))
-# print(solos[~no_S_mutations.GENE_MUT.isna()].GENE_MUT.unique())
+#             # Create the PredictResistance processor
+#             prediction_processor = PredictResistance(mutations_df=mutations,
+#                                                      phenotypes_df=phenotypes,
+#                                                      catalogue_file=catalogue_file,
+#                                                      catalogue_name="training_FRS1.0_catalogue",
+#                                                      drug=drug,
+#                                                      frs_threshold=prediction_frs_threshold,
+#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
+#                                                      U_to_S=True)
+#
+#             predictions = prediction_processor.predict_resistance()
+#
+#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
+#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
+#             prediction_processor = PredictResistance(mutations_df=mutations,
+#                                                      phenotypes_df=phenotypes,
+#                                                      catalogue_file=catalogue_file,
+#                                                      catalogue_name="training_FRS0.8_catalogue",
+#                                                      drug=drug,
+#                                                      frs_threshold=prediction_frs_threshold,
+#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
+#                                                      U_to_S=True)
+#
+#             predictions = prediction_processor.predict_resistance()
+#
+#
+#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
+#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
+#             prediction_processor = PredictResistance(mutations_df=mutations,
+#                                                      phenotypes_df=phenotypes,
+#                                                      catalogue_file=catalogue_file,
+#                                                      catalogue_name="training_FRS0.6_catalogue",
+#                                                      drug=drug,
+#                                                      frs_threshold=prediction_frs_threshold,
+#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
+#                                                      U_to_S=True)
+#
+#             predictions = prediction_processor.predict_resistance()
+#         print(f"Done with {drug}")
+#     except Exception as e:
+#         print(f"An error occurred while processing {drug}: {e}")
+#         traceback.print_exc()
+#         continue
+#
+#
 #
 # #%%%
-# with open("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/S_no_mopfilt.txt", 'w') as summary_file:
-#     # Write the summary content
-#     summary_file.write(f"{build_cat_processor.S}")
+# #WHO cat
+# for prediction_frs_threshold in [1.0, 0.8, 0.6]:
+#     prediction_processor = PredictResistance(mutations, phenotypes,
+#                                              "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-GTB-PCI-2021.7_v1.2_GARC1_RFUS.csv",
+#                                              catalogue_name="WHO_catalogue",
+#                                              drug="STM",
+#                                              frs_threshold=prediction_frs_threshold,
+#                                              out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results")
 #
-# with open("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/R_no_mopfilt.txt", 'w') as summary_file:
-# # Write the summary content
-#     summary_file.write(f"{build_cat_processor.R}")
-#
-# with open("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/U_mopfilt.txt", 'w') as summary_file:
-#     # Write the summary content
-#     summary_file.write(f"{build_cat_processor.U}")
-#
-#
-# build_cat_processor.all_data_frs_filtered.to_csv("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/all_data_frs_filtered_no_mopfilt.csv", index=False)
-#
-# no_S_mutations.to_csv("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/all_data_frs_filtered_no_S_mutations_no_mopfilt.csv", index=False)
-#
-# solos.to_csv("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/all_data_frs_filtered_no_S_mutations_filtered_one_sample_no_mopfilt.csv", index=False)
-#
+#     predictions = prediction_processor.predict_resistance()
+#     print(F"Done with WHO_catalogue and FRS: {prediction_frs_threshold}")
 # #%%%
-# print(build_cat_processor.all_data_frs_filtered[build_cat_processor.all_data_frs_filtered['GENE_MUT'] == "katG@Y155C"])
-# #%%%
-# import pandas as pd
-# mop_solos = pd.read_csv("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/results/tmp/all_data_frs_filtered_no_mopfilt.csv",
-#                         header=0)
 #
-# def fisher_binary(solos, mut):
-#     # Count occurrences of "R" and "S" phenotypes for the mutation and without the mutation
-#     R_count = len(solos[(solos['phenotype'] == "R") & (solos['GENE_MUT'] == mut)])
-#     S_count = len(solos[(solos['phenotype'] == "S") & (solos['GENE_MUT'] == mut)])
-#     R_count_no_mut = len(solos[(solos['GENE_MUT'].isna()) & (solos['phenotype'] == "R")])
-#     S_count_no_mut = len(solos[(solos['GENE_MUT'].isna()) & (solos['phenotype'] == "S")])
 #
-#     # Build contingency table: ((R count, S count), (background R count, background S count))
-#     data = [[R_count, S_count], [R_count_no_mut, S_count_no_mut]]
 #
-#     # Calculate Fisher's exact test p-value
-#     _, p_value = stats.fisher_exact(data)
 #
-#     # Determine the phenotype prediction based on the p-value and the uniqueness of the phenotype
-#     if p_value < 0.05 or solos[solos['GENE_MUT'] == mut]['phenotype'].nunique() == 1:
-#         # If variant frequency is 1 or p-value is significant, determine phenotype based on counts
-#         pred = "R" if R_count > S_count else "S"
-#     else:
-#         pred = "U"  # If p-value is not significant or there is more than one phenotype, predict "U"
 #
-#     # Return the prediction along with evidence
-#     return {
-#         "pred": pred,
-#         "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, None]],
-#     }
 
-
-
-# mop_solos = build_cat_processor.all_data_frs_filtered[~build_cat_processor.all_data_frs_filtered.GENE_MUT.isin(i["mut"] for i in S)].copy()
-#%%%
-from scipy import stats
-S, R, U = [], [], []
-
-for mut in mop_solos[~mop_solos.GENE_MUT.isna()].GENE_MUT.unique():
-        pheno = fisher_binary(mop_solos, mut)
-        #print(f"prediction: {mut}\t{pheno}")
-        if pheno["pred"] == "R":
-            R.append({"mut": mut, "evid": pheno["evid"]})
-        elif pheno["pred"] == "U":
-            U.append({"mut": mut, "evid": pheno["evid"]})
-#%%
