@@ -1,16 +1,19 @@
 #%%
-
+import re
 import sys
+import subprocess
+import importlib.util
 sys.path.append("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue")
 from utils import *
 
 
 class MutationsDataProcessor:
-    def __init__(self, drug, genes_file, mutations_file):
+    def __init__(self, drug, genes_file, mutations_file, prepare_catomatic_input=False):
         self.drug = drug
         self.genes_file = genes_file
         self.mutations_file = mutations_file
         self.genes = None
+        self.prepare_catomatic_input = prepare_catomatic_input
 
     def process_input_data(self):
         self.genes = get_genes_of_interest_from_genes_file(self.genes_file, self.drug)
@@ -38,7 +41,13 @@ class MutationsDataProcessor:
             # Remove synonymous entries
             filtered_mutations = filtered_mutations[~filtered_mutations.IS_SYNONYMOUS]
 
-            return filtered_mutations
+            if not self.prepare_catomatic_input:
+                return filtered_mutations
+
+            elif self.prepare_catomatic_input:
+                catomatic_input = prepare_catomatic_mutations_input(filtered_mutations)
+                return catomatic_input
+
         else:
             raise ValueError("Missing 'gene' column in the mutations file")
 
@@ -55,7 +64,7 @@ class PhenotypesDataProcessor:
         genes (list): List of genes of interest.
     """
 
-    def __init__(self, drug, genes_file, phenotypes_file, phenotype_quality="MEDIUM"):
+    def __init__(self, drug, genes_file, phenotypes_file, phenotype_quality="MEDIUM", prepare_catomatic_input=False):
         """
         Initializes PhenotypesDataProcessor with the provided parameters.
 
@@ -71,6 +80,7 @@ class PhenotypesDataProcessor:
         self.phenotypes_file = phenotypes_file
         self.phenotype_quality = phenotype_quality.upper()  # Convert to uppercase to handle case-insensitivity
         self.genes = None
+        self.prepare_catomatic_input =prepare_catomatic_input
 
     def process_input_data(self):
         """
@@ -118,7 +128,13 @@ class PhenotypesDataProcessor:
 
             filtered_phenotypes = filtered_phenotypes.groupby("ena_run").apply(filter_multiple_phenos).reset_index(
                 drop=True)
-            return filtered_phenotypes
+
+            if not self.prepare_catomatic_input:
+                return filtered_phenotypes
+
+            elif self.prepare_catomatic_input:
+                catomatic_input = prepare_catomatic_phenotypes_input(filtered_phenotypes)
+                return catomatic_input
         else:
             print("No 'drug' or 'DRUG' column found in the phenotypes file.")
             sys.exit()
@@ -180,12 +196,9 @@ class CreateInputDataSummaryTable:
         return df
 
 
-#     # TODO: fix argparse code when fin
-#     # TODO: tidy up utils.py and remove stuff not needed that DA had there
-
 class BuildResCatalogueProcessor:
     def __init__(self, mutations_df, filtered_phenotypes_df, genbank_file, drug, frs_thresholds, catalogue_version,
-                 piezo_wildcards=None, out_dir=None, hardcoded=None, merge_type='both'):
+                 run_OR =False, piezo_wildcards=None, out_dir=None, hardcoded_file=None, merge_type='both'):
         """
         BuildResCatalogue class for constructing a resistance catalogue.
 
@@ -214,12 +227,12 @@ class BuildResCatalogueProcessor:
         self.drug = drug
         self.frs_thresholds = frs_thresholds
         self.catalogue_version = catalogue_version
+        self.run_OR = run_OR
         self.piezo_wildcards = piezo_wildcards
         if out_dir is None:
             self.out_dir = os.getcwd()  # Set to current working directory
         else:
             self.out_dir = out_dir
-        self.hardcoded = hardcoded
         self.merge_type = merge_type
 
         # Ensure frs_thresholds are within the valid range
@@ -267,10 +280,11 @@ class BuildResCatalogueProcessor:
                 print(f"No Piezo wildcards found for {self.drug}")
                 self.piezo_wildcards = None
 
-        if self.hardcoded:
-            cwd = os.getcwd()
-            hardcoded_file = os.path.join(cwd, "data", "neutral_variants.json")
-            with open(hardcoded_file, 'r') as file:
+        self.hardcoded_file = hardcoded_file
+        if self.hardcoded_file is not None:
+            # cwd = os.getcwd()
+            # hardcoded_file = os.path.join(cwd, "data", "neutral_variants.json")
+            with open(self.hardcoded_file, 'r') as file:
                 self.hardcoded_data = json.load(file)
             if self.drug in self.hardcoded_data:
                 self.hardcoded_data = self.hardcoded_data[self.drug]
@@ -278,7 +292,7 @@ class BuildResCatalogueProcessor:
                 self.prediction_value_string = "RUS"
             else:
                 print(f"No neutral variants found for {self.drug}")
-                self.hardcoded = None
+                self.hardcoded_file = None
 
         self.results_dir = os.path.join(self.out_dir, f"{self.drug}")
         os.makedirs(self.results_dir, exist_ok=True)
@@ -304,7 +318,7 @@ class BuildResCatalogueProcessor:
             self.S, self.R, self.U, self.to_remove = [], [], [], []
 
             # hardcode variant classifications - often helps to seed with phylogenetic mutations
-            if self.hardcoded:
+            if self.hardcoded_data:
                 for k, v in self.hardcoded_data.items():
                     if v == 'S':
                         self.S.append({'mut': k, 'evid': {}})
@@ -340,10 +354,129 @@ class BuildResCatalogueProcessor:
 
 
 
+class BuildCatomaticCatalogueProcessor:
+    def __init__(self, samples, mutations, genbank_ref, catalogue_name,
+                 version, drug, wildcards=None, path_to_catomatic=None,
+                 seeds=False, out_dir=False, test='Binomial', background=0.01, p=0.90,
+                 FRS=1.00, save_to_piezo=False):
+        self.samples = samples
+        self.mutations = mutations
+        self.path_to_catomatic =os.getcwd() if path_to_catomatic is None else path_to_catomatic
+        self.out_dir = os.getcwd() if out_dir is None else out_dir
+        self.test = test
+        self.background = background
+        print(f'background: {self.background}')
+        self.p = p
+        print(f"p: {self.p}")
+        self.FRS = FRS
+        self.genbank_ref = genbank_ref
+        self.catalogue_name = catalogue_name
+        self.version = version
+        self.drug = drug
+        self.seeds = seeds
+        if self.seeds is not None:
+            with open(self.seeds, 'r') as file:
+                self.seeds_all = json.load(file)
+        if self.drug in self.seeds_all:
+            self.seeds = list(self.seeds_all[self.drug].keys())
+            print(f"Found neutral variants for {self.drug}")
+        else:
+            print(f"No neutral variants found for {self.drug}")
+        self.wildcards = wildcards
+        if self.wildcards:
+            with open(wildcards, 'r') as file:
+                self.wildcards_data = json.load(file)
+            print(f"Adding Piezo wildcards for {self.drug}")
+            if self.drug in self.wildcards_data:
+                self.wildcards = self.wildcards_data[self.drug]
+                print(f"Setting Piezo wildcards for {self.drug}")
+            else:
+                print(f"No Piezo wildcards found for {self.drug}")
+                self.wildcards = None
+        self.save_to_piezo = save_to_piezo
+
+        self.catalogue_builder = None
+
+        # Check for the repository and import the module
+        self.check_repo()
+        self.import_catalogue_builder()
+
+    def check_repo(self):
+        if os.path.exists(self.path_to_catomatic):
+            print(f"The directory {self.path_to_catomatic} exists. Proceeding with loading the module.")
+        else:
+            raise FileNotFoundError(f"The directory {self.path_to_catomatic} does not exist. Please clone the repository manually.")
+
+    def import_catalogue_builder(self):
+        module_path = os.path.join(self.path_to_catomatic, 'src', 'catomatic', 'CatalogueBuilder.py')
+        if os.path.exists(module_path):
+            print(f"The catomatic repo directory {self.path_to_catomatic} exists. Proceeding with loading the module.")
+        else:
+            raise FileNotFoundError(f"The file {module_path} does not exist. Please ensure the repository is correctly cloned.")
+
+        spec = importlib.util.spec_from_file_location('CatalogueBuilder', module_path)
+        catalogue_builder = importlib.util.module_from_spec(spec)
+        sys.modules['CatalogueBuilder'] = catalogue_builder
+        spec.loader.exec_module(catalogue_builder)
+        self.catalogue_builder = catalogue_builder
+        print("CatalogueBuilder module imported")
+
+    def build_catalogue(self):
+        if self.catalogue_builder is None:
+            raise ImportError("CatalogueBuilder module is not imported.")
+
+        # Get the BuildCatalogue function from catomatic
+        BuildCatalogue = getattr(self.catalogue_builder, 'BuildCatalogue', None)
+        if BuildCatalogue is None:
+            raise AttributeError("The function 'BuildCatalogue' is not found in the CatalogueBuilder module.")
+
+        # Call the BuildCatalogue function
+        catalogue=BuildCatalogue(samples=self.samples, mutations=self.mutations, test=self.test, background=self.background,
+                                 p=self.p, FRS=self.FRS)
+
+        # Write out piezo catalogue
+        if self.save_to_piezo:
+            results_dir = os.path.join(self.out_dir, f"{self.drug}")
+            os.makedirs(results_dir, exist_ok=True)
+            outfile = os.path.join(results_dir, f"{self.drug}_catalogue_bg_{self.background}_p_{self.p}_FRS_{self.FRS}.csv")
+
+            catalogue.to_piezo(genbank_ref=self.genbank_ref, catalogue_name=self.catalogue_name,
+                               version=self.version, drug=drug, wildcards=self.wildcards, outfile=outfile)
+            print("Catalogue has been converted to Piezo format and saved to:", outfile)
+
+        return catalogue
+
+    def create_final_catalogue(self):
+        catalogue_files = []
+        for root, _, files in os.walk(self.out_dir):
+            for file in files:
+                if file.endswith(f'_catalogue_bg_{self.background}_p_{self.p}_FRS_{self.FRS}.csv'):
+                    catalogue_files.append(os.path.join(root, file))
+
+        # Read the first file with header
+        df = pd.read_csv(catalogue_files[0])
+        df.reset_index(drop=True, inplace=True)
+
+        # Read the rest of the files without header and concatenate
+        for file in catalogue_files[1:]:
+            temp_df = pd.read_csv(file, header=0)
+            temp_df.reset_index(drop=True, inplace=True)
+            df = pd.concat([df, temp_df], ignore_index=True)
+            df.reset_index(drop=True, inplace=True)
+
+        # Save the concatenated DataFrame to the output file
+        outfile_catalogue = os.path.join(self.out_dir, f"catalogue_bg_{self.background}_p_{self.p}_FRS_{self.FRS}.csv")
+
+        df.reset_index(drop=True, inplace=True)
+        df.to_csv(outfile_catalogue, index=False)
+        print(f"Concatenated file saved as: {outfile_catalogue}")
+
+
+
 class PredictResistance:
     def __init__(self, mutations_df, phenotypes_df, catalogue_file, catalogue_name,
                  drug, frs_threshold, U_to_R=False, U_to_S=False,
-                 merge_type="both", out_dir=None, Print=True):
+                 merge_type="both", out_dir=None, outfile_prefix_string=None, Print=True):
 
         """
         Predict resistance given a df and resistance catalogue (piezo format)
@@ -357,26 +490,35 @@ class PredictResistance:
         self.U_to_R = U_to_R
         self.U_to_S = U_to_S
         self.merge_type = merge_type
+
         if out_dir is None:
             self.out_dir = os.getcwd()  # Set to current working directory
         else:
             self.out_dir = out_dir
+        print(f"Output directory: {self.out_dir}")
+
+        self.outfile_prefix_string = outfile_prefix_string
+        print(f"Output file prefix: {self.outfile_prefix_string}")
         self.Print = Print
 
         self.results_dir = os.path.join(self.out_dir, f"{self.drug}")
+        print(f"Results directory: {self.results_dir}")
         os.makedirs(self.results_dir, exist_ok=True)
 
-        self.out_csv_matrix = f"{self.catalogue_name}_{self.drug}_FRS{self.frs_threshold:.2f}_predictions_matrix.csv"
+        self.out_csv_matrix = f"{self.catalogue_name}_FRS_{self.frs_threshold}_{self.outfile_prefix_string}_predictions_matrix.csv"
         self.out_csv_matrix_file = os.path.join(self.results_dir, f"{self.out_csv_matrix}")
 
-        self.out_csv_predictions = f"{self.catalogue_name}_{self.drug}_FRS{self.frs_threshold:.2f}_predictions.csv"
+        self.out_csv_predictions = f"{self.catalogue_name}_FRS_{self.frs_threshold}_{self.outfile_prefix_string}_predictions.csv"
         self.out_csv_predictions_file = os.path.join(self.results_dir, f"{self.out_csv_predictions}")
 
-        self.out_text_error = f"{self.catalogue_name}_{self.drug}_FRS{self.frs_threshold:.2f}_predictions_errors.txt"
+        self.out_text_error = f"{self.catalogue_name}_FRS_{self.frs_threshold}_{self.outfile_prefix_string}_predictions_errors.txt"
         self.out_text_error_file = os.path.join(self.results_dir, f"{self.out_text_error}")
 
-        self.out_text_summary = f"{self.catalogue_name}_{self.drug}_FRS{self.frs_threshold:.2f}_predictions_performance_summary.txt"
-        self.out_text_summary_file = os.path.join(self.results_dir, f"{self.out_text_summary}")
+        if self.outfile_prefix_string is None:
+            self.out_text_summary = f"FRS{self.frs_threshold:.2f}_predictions_performance_summary.txt"
+        elif self.outfile_prefix_string is not None:
+            self.out_text_summary = f"{self.catalogue_name}_FRS_{self.frs_threshold}_{self.outfile_prefix_string}_predictions_performance_summary.txt"
+            self.out_text_summary_file = os.path.join(self.results_dir, f"{self.out_text_summary}")
 
         # Merge mutations and phenotypes dfs based on the merge_type parameter
         if self.merge_type == 'mutations':
@@ -400,7 +542,6 @@ class PredictResistance:
             raise ValueError("Invalid merge_type. Choose from 'mutations', 'phenotypes', or 'both'.")
 
 
-
         # Filter data by frs if provided
         if self.frs_threshold:
             if not 0 <= self.frs_threshold <= 1:
@@ -410,33 +551,55 @@ class PredictResistance:
             pass
 
 
-    def predict_resistance(self):
-        cm = PiezoPredict(self.all_data, self.catalogue_file, self.out_csv_matrix_file,
+        stat_summary = PiezoPredict(self.all_data, self.catalogue_file, self.out_csv_matrix_file,
                           self.out_text_error_file, self.out_text_summary_file, self.out_csv_predictions_file, self.drug,
-                          self.U_to_R, self.U_to_S)[0]
-        return cm
+                          self.U_to_R, self.U_to_S)
+
+        background = self.outfile_prefix_string.split("_")[3]
+        ci = self.outfile_prefix_string.split("_")[5]
+
+        master_stats = f"{self.catalogue_name}_{self.drug}_prediction_stats.csv"
+        master_stats_file = os.path.join(self.results_dir, f"{master_stats}")
+        # Check if the master stats file exists
+        if not os.path.exists(master_stats_file):
+            # Open the master stats file in write mode and write the header
+            with open(master_stats_file, 'w') as stats_file:
+                stats_file.write("DRUG,BACKGROUND_RATE,CI,FRS_PREDICT,SENSITIVITY,SPECIFICITY,COVERAGE,#RR,#SS,#RS,#SR,#RU,#SU\n")
+
+        # Open the output master stats file in append mode
+        print(f"writing to master stats file: {master_stats_file}")
+        with open(master_stats_file, 'a') as stats_file:
+            # Write stats_summary to file
+            stats_file.write(f"{self.drug},{background},{ci},{self.frs_threshold},{stat_summary}\n")
+
+
 
 
 #%%
 import traceback
+#
+# drugs_mutations = {
+#     "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+#     "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
+#     "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+#     "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
+#     "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
+#     "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+#     "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
+#     "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+#     "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+#     "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
+#     "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+#     "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+#     "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
+#     "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
+# }
+
 
 drugs_mutations = {
-    "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-    "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
-    "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-    "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
-    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
-    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
-    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-    "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-    "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
-    "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-    "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-    "pyrazinamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_pncA_subset.csv",
-    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
-    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
+    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv"
 }
+
 
 with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
     drug_codes = json.load(f)
@@ -447,14 +610,16 @@ for drug, mutations_file in drugs_mutations.items():
     try:
         mutations_processor = MutationsDataProcessor(drug=drug,
                                                      genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
-                                                     mutations_file=mutations_file)
+                                                     mutations_file=mutations_file,
+                                                     prepare_catomatic_input=True)
 
         mutations = mutations_processor.process_input_data()
 
-        phenotypes_processor = PhenotypesDataProcessor(drug = drug,
+        phenotypes_processor = PhenotypesDataProcessor(drug=drug,
                                                        genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
                                                        phenotypes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/training_data_phenotypes_20240125.tsv",
-                                                       phenotype_quality="MEDIUM")
+                                                       phenotype_quality="MEDIUM",
+                                                       prepare_catomatic_input=True)
 
         phenotypes = phenotypes_processor.process_input_data()
 
@@ -466,19 +631,117 @@ for drug, mutations_file in drugs_mutations.items():
             print("Drug code not found")
             continue
 
+        for this_background in [0.15, 0.175, 0.20, 0.225, 0.25]:
+            for this_p in [0.90, 0.95, 0.99]:
+                print(f"on background {this_background} and p {this_p}")
+                build_catomatic_processor = BuildCatomaticCatalogueProcessor(
+                    samples=phenotypes,
+                    mutations=mutations,
+                    out_dir='/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training',
+                    path_to_catomatic="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/catomatic",
+                    test='Binomial',
+                    background=this_background,
+                    p=this_p,
+                    FRS=1,
+                    genbank_ref="NC00962.3",
+                    catalogue_name="catomatic_test",
+                    version="1.1",
+                    drug=drug,
+                    seeds="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/neutral_variants.json",
+                    wildcards="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/wildcards.json",
+                    save_to_piezo=True)
 
-        #WHOcat
-        for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-            print(f"Running WHO cat prediction with threshold {prediction_frs_threshold}")
-            prediction_processor = PredictResistance(mutations, phenotypes,
-                                                     "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv",
-                                                     catalogue_name="WHOv2.0",
-                                                     drug=drug_short,
-                                                     frs_threshold=prediction_frs_threshold,
-                                                     out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/WHOv2")
+                catomatic_catalogue = build_catomatic_processor.build_catalogue()
 
-            predictions = prediction_processor.predict_resistance()
-            print(F"Done with WHO_catalogue and FRS: {prediction_frs_threshold}")
+
+    except Exception as e:
+        print(f"An error occurred while processing {drug}: {e}")
+        traceback.print_exc()
+        continue
+
+# try:
+#     print(f"Concatenating per-drug catalogues into one final catalogue")
+#     build_catomatic_processor.create_final_catalogue()
+
+# except Exception as e:
+#     print(f"An error occurred while concatenating final catalogue: {e}")
+#     traceback.print_exc()
+
+
+
+#%%%
+# drugs_mutations = {
+#     "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+#     "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
+#     "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+#     "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
+#     "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
+#     "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+#     "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
+#     "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+#     "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+#     "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
+#     "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+#     "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
+#     "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
+#     "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
+# }
+
+drugs_mutations = {
+    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv"
+}
+
+with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
+    drug_codes = json.load(f)
+
+for drug, mutations_file in drugs_mutations.items():
+    try:
+        mutations_processor = MutationsDataProcessor(drug=drug,
+                                                     genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
+                                                     mutations_file=mutations_file,
+                                                     prepare_catomatic_input=False)
+
+        mutations = mutations_processor.process_input_data()
+
+        phenotypes_processor = PhenotypesDataProcessor(drug=drug,
+                                                       genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
+                                                       phenotypes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/training_data_phenotypes_20240125.tsv",
+                                                       phenotype_quality="MEDIUM",
+                                                       prepare_catomatic_input=False)
+
+        phenotypes = phenotypes_processor.process_input_data()
+
+        # Find the corresponding code for the drug
+        if drug in drug_codes:
+            drug_short = drug_codes[drug]
+            print("Short code for", drug, "is", drug_short)
+        else:
+            print("Drug code not found")
+            continue
+
+        results_directory = '/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training'
+        this_drug_directory = os.path.join(results_directory, drug)
+        these_files = []
+
+        for root, _, files in os.walk(this_drug_directory):
+            for file in files:
+                if file.endswith('FRS_1.csv'):
+                    these_files.append(os.path.join(root, file))
+
+        for this_file in these_files:
+            for prediction_frs_threshold in [1.0, 0.8, 0.6]:
+                print(f"Running resistance prediction with threshold {prediction_frs_threshold} with catalogue {this_file}")
+                prediction_processor = PredictResistance(mutations_df=mutations,
+                                                         phenotypes_df=phenotypes,
+                                                         catalogue_file=this_file,
+                                                         catalogue_name="catalogue_v1.1_FRS1",
+                                                         drug=drug,
+                                                         frs_threshold=prediction_frs_threshold,
+                                                         outfile_prefix_string=f"{os.path.splitext(os.path.basename(this_file))[0]}_binomial",
+                                                         out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/")
+
+                # predictions = prediction_processor.predict_resistance()
+                # print(predictions)
 
         print(F"All done with {drug}")
 
@@ -525,6 +788,7 @@ for drug, mutations_file in drugs_mutations.items():
 #                                                      catalogue_name="training_FRS1.0_catalogue",
 #                                                      drug=drug,
 #                                                      frs_threshold=prediction_frs_threshold,
+#                                                      outfile_prefix_string="foo",
 #                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
 #                                                      U_to_S=True)
 #
@@ -538,6 +802,7 @@ for drug, mutations_file in drugs_mutations.items():
 #                                                      catalogue_name="training_FRS0.8_catalogue",
 #                                                      drug=drug,
 #                                                      frs_threshold=prediction_frs_threshold,
+#                                                      outfile_prefix_string="foo",
 #                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
 #                                                      U_to_S=True)
 #
@@ -551,6 +816,7 @@ for drug, mutations_file in drugs_mutations.items():
 #                                                      catalogue_file=catalogue_file,
 #                                                      catalogue_name="training_FRS0.6_catalogue",
 #                                                      drug=drug,
+#                                                      outfile_prefix_string="foo",
 #                                                      frs_threshold=prediction_frs_threshold,
 #                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
 #                                                      U_to_S=True)
