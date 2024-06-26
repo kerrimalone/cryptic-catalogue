@@ -635,13 +635,13 @@ def PiezoPredict(iso_df, catalogue_file, out_csv_matrix_file, out_text_error_fil
         print(f"writing out prediction summaries: {out_csv_matrix_file}")
         # df_cm = pd.DataFrame(cm, index=["R", "S"], columns=["R", "S"])
         # df_cm.to_csv(out_csv_matrix_file)
-        stat_summary = f"{sensitivity},{specificity},{isolate_cov},{cm[1][1]},{cm[0][0]},{cm[0][1]},{cm[1][0]},'NA','NA'"
+        stat_summary = f"{sensitivity},{specificity},{isolate_cov},{cm[0][0]},{cm[1][1]},{cm[0][1]},{cm[1][0]},'NA','NA'"
 
     if predictions.count("U") > 0:
         print(f"writing out prediction summaries: {out_csv_matrix_file}")
         # df_cm = pd.DataFrame(cm, index=["R", "S"], columns=["R", "S", "U"])
         # df_cm.to_csv(out_csv_matrix_file)
-        stat_summary = f"{sensitivity},{specificity},{isolate_cov},{cm[1][1]},{cm[0][0]},{cm[0][1]},{cm[1][0]},{cm[0][2]},{cm[1][2]}"
+        stat_summary = f"{sensitivity},{specificity},{isolate_cov},{cm[0][0]},{cm[1][1]},{cm[0][1]},{cm[1][0]},{cm[0][2]},{cm[1][2]}"
 
     return stat_summary
 

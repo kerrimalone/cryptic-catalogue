@@ -564,7 +564,7 @@ class PredictResistance:
         if not os.path.exists(master_stats_file):
             # Open the master stats file in write mode and write the header
             with open(master_stats_file, 'w') as stats_file:
-                stats_file.write("DRUG,BACKGROUND_RATE,CI,FRS_PREDICT,SENSITIVITY,SPECIFICITY,COVERAGE,#RR,#SS,#RS,#SR,#RU,#SU\n")
+                stats_file.write("DRUG,BACKGROUND_RATE,CI,FRS_PREDICT,SENSITIVITY,SPECIFICITY,COVERAGE,#SS,#RR,#RS,#SR,#RU,#SU\n")
 
         # Open the output master stats file in append mode
         print(f"writing to master stats file: {master_stats_file}")
@@ -597,7 +597,11 @@ import traceback
 
 
 drugs_mutations = {
-    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv"
+    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
+    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
+    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 }
 
 
@@ -687,8 +691,13 @@ for drug, mutations_file in drugs_mutations.items():
 #     "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 # }
 
+
 drugs_mutations = {
-    "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv"
+    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
+    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
+    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 }
 
 with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
