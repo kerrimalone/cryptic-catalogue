@@ -85,7 +85,7 @@ https://figshare.com/articles/dataset/panel_final_tsv/7605395/1). This generated
 
 
 
-### Catalogue generation and test set evaluation
+### Catalogue generation
 Catalogue file: [training_catalogue_1.1_202406.csv](results/training_catalogue_1.1_202406.csv)  
 script: [main.py](main.py)  
 Parameter grid search: [stats_inspection.Rmd](data/training/results/catomatic_training/stats_inspection.Rmd)
@@ -135,30 +135,75 @@ The table below outlines the number of classifying entries / rows per drug in th
   | streptomycin | 244 |
 
 
-The resulting training catalogue was evaluated using the training data and compared to resistance prediction using the WHOv2 catalogue and the training data.
+
+
+
+### Training set evaluation
+Analysis notebook: [compare_stats_3cats.Rmd](data/training/results/compare_stats_3cats.Rmd)  
+
+New catalogue predictions using training data results folder:`data/training/results/catomatic_training` , files ending in "predictions.csv" in each relevant drug subdirectory. Cross-reference with [chosen_parameters_all_drugs.csv](data/training/results/catomatic_training/chosen_parameters_all_drugs.csv) for relevant files.  
+
+WHOv2 prediction using training data results folder: `data/training/results/WHOv2`, files ending in "predictions.csv" in each relevant drug subdirectory.  
+
+
+
+
+---
 
 ### --- A note on WHO catalogues  
-Several versions of both the first (WHOv1) and the second (WHOv2) catalogues were used along the analytical path of this project. The version used for these presented results is WHOv2
+Several versions of both the first (WHOv1) and the second (WHOv2) catalogues were used along the analytical path of this project. The version used for the results presented is the WHOv2 catalogue
 [NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv](data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv), found [here](https://github.com/oxfordmmm/tuberculosis_amr_catalogues/blob/public/catalogues/NC_000962.3/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv).  
 This repo contains scripts and results for comparing WHO catalogues to any given catalogue in a sane format, see [compare_WHO_custom_catalogue.ipynb](data/compare_WHO_custom_catalogue.ipynb) for more on this.  
 
+---
+The resulting training catalogue was evaluated using the training data and compared to resistance prediction using the WHOv2 catalogue and the training data. `piezo` was used for prediction at FRS = [1, 0.8]. Below is a comparison of the performance of the two catalogues (FRS =1):  
 
-WHO catalogue
-
-Training set evaluation
-
-Test set evaluation
-with gnomonicus
+![training_eval](data/training/results/training_v_WHOv2.png)  
+Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions. Where the new catalogue demonstrates lower specificity in comparison to WHOv2 predictions (_e.g._ ethambutol, levofloxacin moxifloxacin, rifmapicin), we see an increase in coverage to counterbalance this. Where the WHOv2 catalogue appears to outperform, the differences between two are minimal.
 
 
 
 
 
+### Validation set evaluation results
+Prediction using the new catalogue and the WHOv2 catalogue was run on the validation dataset using gnomonicus, default parameters and FRS >= 0.9. The results and performance results can be found [here](results/catomatic_202406_validation_prediction_results.csv), [here](results/catomatic_202406_validation_prediction_results_WHOv2.csv) and [here](results/all_catalogue_validation_stats_202406.csv). Analysis notebook [here](data/validation/cryptic_catalogue_senspec.Rmd).
 
 
-### Test set evaluation results
-• Where variations in the summary metrics occur, they tend to be minimal.
-• We out-perform WHOv1 for capreomycin and kanamycin predictions.
-• We demonstrate better sensitivity but worse specificity for moxifloxacin and levofloxacin predictions. A quick glance places suspicions on different U and S classifications between the catalogues. 
-• We demonstrate better specificity but worse sensitivity for ethambutol predictions and to a lesser extent for isoniazid and rifampicin predictions.
-• We are slightly less sensitive for streptomycin predictions.
+![validation_comparison_res](data/validation/new-v-WHOv2_validation.png)
+
+Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions on the validation dataset. Where variations in the summary metrics occur, they tend to be minimal and exist in the second or third decimal place.
+
+
+### Catalogue content: Comparing WHOv2 to the new catalogue
+Analysis script [here](data/training/results/compare_WHO_training_venns.Rmd).  
+
+The WHOv2 catalogue format makes it difficult to compare in a like-for-like fashion with the new catalogue.  
+Both catalogues however, report the contingency table counts used for statistical testing and within these we have a measure of how many isolates were seen with a given variant.  
+Therefore, these counts were used to assess whether the most common mutations in the new catalogue (variants seen in >10 isolates) are also present in the WHOv2 catalogue and whether they have the same phenotype classification label.  
+
+In the table below, the total number of variants seen in more than 10 isolates (training data) in the new catalogue are listed in the `total` column. The other columns are counts of phenotype combinations of the following format: 'new catalogue phenotype "." WHOv2 catalogue phenotype' _e.g._ R.R means that both the training and WHO2 catalogues predict resistance R. X means that the variant is missing from the respective catalogue.  
+
+Taking rifampicin as an example: 23 out of 25 of the top variants in the new rifampicin catalogue are also in the WHOv2 catalogue. 15 and 4 variants have the same phenotype classification label in both catalogues (R,S respectively). One of the top variants has a U label in the new catalogue versus an S label in the WHOv2 catalogue while 5 of the top variants in the new catalogue are not present in the WHOv2 catalogue (3 with R label, 2 with S label).
+
+|              | R.R | R.X | S.S | S.X | U.S | U.X | total |
+|--------------|-----|-----|-----|-----|-----|-----|-------|
+| amikacin     | 1   | 0   | 3   | 5   | 3   | 3   | 15    |
+| capreomycin  | 1   | 0   | 1   | 0   | 2   | 1   | 5     |
+| ethambutol   | 9   | 4   | 2   | 13  | 1   | 8   | 37    |
+| ethionamide  | 3   | 2   | 0   | 4   | 0   | 4   | 13    |
+| isoniazid    | 6   | 2   | 3   | 5   | 0   | 2   | 18    |
+| kanamycin    | 5   | 0   | 2   | 4   | 1   | 4   | 16    |
+| levofloxacin | 9   | 0   | 5   | 2   | 3   | 1   | 20    |
+| linezolid    | 1   | 0   | 0   | 2   | 0   | 0   | 3     |
+| moxifloxacin | 8   | 0   | 3   | 0   | 2   | 1   | 14    |
+| rifampicin   | 15  | 3   | 4   | 2   | 1   | 0   | 25    |
+| streptomycin | 4   | 0   | 4   | 0   | 0   | 0   | 8     |    
+
+These results can be visualised on a per-variant level using scatterplots. See below for the rifampicin plot and [here](data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training.pdf) for all of the drugs. No filtering was applied to the variants for the plots, so rare variants are also included.  
+
+
+
+
+![rif_comparison](data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training_RIF.png)  
+
+We can see that mismatches between the two catalogues in terms of phenotype classifications occur amongst more rare variants (_e.g._ when the log(counts)+1) value is low). See [this file](data/training/results/catomatic_training/compare_counts_top_mutations_training_WHOv2.0_catomatic_training.csv) for the per variants counts across both catalogues.
