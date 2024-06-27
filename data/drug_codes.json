@@ -12,5 +12,8 @@
   "moxifloxacin": "MXF",
   "ofloxacin": "OFX",
   "rifampicin": "RIF",
-  "streptomycin": "STM"
+  "streptomycin": "STM",
+  "pyrazinamide": "PZA",
+  "bedaquiline": "BDQ",
+  "clofazimine": "CFZ"
 }
