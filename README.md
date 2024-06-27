@@ -1,55 +1,146 @@
 # Analysis Overview
+See `results` folder for the main data files, results, graphs and tables referred to in the text below (these will also be hyperlinked).  
+
+Extra scripts and analysis notebooks relevant to each section will be linked in-text to their location in the repo but *not* copied to `results` folder.  
 
 ### Generation of training and validation datasets  
-Please see [this html document](./creating_training_validation_sets/drprg-data-summary.html) for a detailed overview of how the training and validation datasets were constructed. A brief top level summary follows below.
+Please see [this html document](creating_training_validation_sets/drprg-data-summary.html) for a detailed overview of how the training and validation datasets were constructed. A brief top level summary follows below.
 
 #### Training
-Training data: 25033 samples, file = [training_data_20231122.tsv](/./creating_training_validation_sets/training_data_20231122.tsv)  
-Analysis file:  [creating_training_validation_datasets.Rmd](./creating_training_validation_sets/creating_training_validation_datasets.Rmd)
+Training data: 25033 samples, file = [training_data_20231122.tsv](results/training_data_20231122.tsv)  
+Analysis file:  [creating_training_validation_datasets.Rmd](results/creating_training_validation_datasets.Rmd)
 
-The training data was generated from CRyPTIC data ([CRyPTIC_reuse_table_20231208.csv](https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/reuse/CRyPTIC_reuse_table_20231208.csv)) and mykrobe data ([mykrobe.20231121.tsv](./creating_training_validation_sets/mykrobe.20231121.tsv)). 501 samples removed due to duplication between the sets.  
+The training data was generated from CRyPTIC data ([CRyPTIC_reuse_table_20231208.csv](https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/reuse/CRyPTIC_reuse_table_20231208.csv)) and mykrobe data ([mykrobe.20231121.tsv](creating_training_validation_sets/mykrobe.20231121.tsv)). 501 samples removed due to duplication between these two datasets and/or the validation set (see [here](creating_training_validation_sets/training_data_samples_excluded_duplicated_20231122.tsv) for those).
 
-131 samples removed from the resulting training data as they are part of the validation set.
+
+The training set phenotypes can be seen in the barplot below. Note that there is at least one drug phenotype for each sample.   
+
+---  
+![training barplot](creating_training_validation_sets/training_data_barplot_20231122.png)  
+---
 
 
 #### Validation  
-Validation data: 8914 samples, file = validation_set_20231110.pass.tsv
+Validation data: 8914 samples, file = [validation_set_20231110.pass.tsv](creating_training_validation_sets/validation_set_20231110.pass.tsv)    
+Analysis file:  [creating_training_validation_datasets.Rmd](results/creating_training_validation_datasets.Rmd)
 
 
-The validation set came from a curated a dataset of ~45k samples that includes samples used to train the WHO catalogue (n = 35.5k samples) and extra samples from publications/ENA (n = 9.5k samples). These were collected for the DrPRG publication by Hall et al. https://github.com/mbhall88/drprg.  
+The validation set came from a curated a dataset of ~45k samples that includes samples used to train the WHO catalogue (n = 35.5k samples) and extra samples from publications/ENA (n = 9.5k samples). These were collected for the DrPRG publication by Hall _et al._ https://github.com/mbhall88/drprg.  
 
 The samples have been phenotyped in various ways (MGIT, plates, proportional agar tests) and binary R/S phenotypes are reported.
-As our goal is to compare the herein newly created CRyPTIC catalogue to the WHO catalogue, we excluded samples used to train the WHO catalogue from our validation set. Therefore, our validation dataset is represented by the 9.5k samples scraped from publications/ENA.
-The unique identifiers for both the training and validation datasets are ENA accession numbers.  
+As our goal is to compare the herein newly created CRyPTIC catalogue to the WHO catalogue, we excluded samples used to train the WHO catalogue from our validation set. Therefore, our validation dataset is represented by the 9.5k samples scraped from publications/ENA.  
+The table below represents the sources (n = 19) of the validation samples. You can see in the table that the majority of samples were phenotyped with MGIT (where phenotype method is stated):  
+
+![validation_sources](/creating_training_validation_sets/ENA_sample_sources.png)  
+
+---
  
- 
+The validation set phenotypes are plotted below: (Note this data is sometimes referred to as the "ENA dataset" as the samples were sourced externally to CRyPTIC)   
+
+---  
+  ![validation barplot](creating_training_validation_sets/ENA_dataset.png)  
+---  
+
+
+
 ### Catalogue construction
 #### Variant calling
-Test and validation data was downloaded from the ENA using ENA accessions and processed using Clockwork `regenotype`. FRS == 0.9 was chosen by default.
+The test and validation data was downloaded using the ENA accessions and processed using Clockwork `variant_call` and `regenotype`. FRS == 0.9 was chosen by default.
+(see [Clockwork wiki](https://github.com/iqbal-lab-org/clockwork/wiki) for more).  
+
+For regenotyping, the following is an example of the script run:  
 
     nextflow run ../minos/nextflow/regenotype.nf \
-        -resume \
-        -with-singularity /nfs/research/zi/mhunt/Containers/minos_v0.12.5.img \
-        -work-dir /hps/nobackup/iqbal/mhunt/tmp/regeno \
+        -with-singularity minos_v0.12.5.img \
+        -work-dir tmp/regeno \
         -ansi-log false \
         -c ../minos/nextflow/regenotype.config \
         -with-trace nf.trace.txt \
         -profile large \
-        --ref_fasta /nfs/research/zi/mhunt/Cryptic2/Refs/Ref.H37Rv/ref.fa \
+        --ref_fasta Ref.H37Rv/ref.fa \
         --manifest manifest.tsv \
         --outdir  Out
 
+`manifest.tsv` is a tab-separated file with header:  
+name: ENA_IDs/unique sample identifier   
+reads: path to per-sample bam file generated by clockwork  
+vcf: path to per-sample VCF file generated by clockwork
+
+
 ### Variant table preparation
-Gnomonicus was used to generate the input mutations table for catalogue construction (Martin Hunt, output here:/hps/nobackup/iqbal/mhunt/Gnomicus/Out/).  
-The VCFs were filtered beforehand to reduce RAM and run time to ~3GB per sample, 25min runtime. A catalogue was not supplied.  
-The resulting x.variants.csv and x.mutations.csv were processed afterwards whereby
-the FRS data from the x.variants.csv file was appended to the x.mutations.csv file for each sample. See `make_cat_builder_input.py` to do this.
+Variant tables: 16 files in `data/training` with filenames beginning with "MUTATIONS".  
+
+Gnomonicus was used to generate the input mutations table for catalogue construction using default parameters and **no** input catalogue.  
+
+The VCFs were filtered beforehand to remove ./. and 0/0 containing records to reduce RAM and run time to ~3GB per sample, 25min runtime.  
+
+The resulting `x.variants.csv` and `x.mutations.csv` were processed afterwards whereby
+the FRS data from the zx.variants.csvz file was appended to the zx.mutations.csvz file for each sample. See `make_cat_builder_input.py` for this process.  
+
+This produced `MUTATIONS_training_20240125.csv.gz`. This file is 2G and available for request from Kerri/Zam.  
+
+This large file was filtered for variants within a set of resistance genes of interest. The file [get_gene_panel_20240125.Rmd](data/get_gene_panel_20240125.Rmd) generated a list of resistance genes from [variant_to_resistance_drug-202206.json](data/variant_to_resistance_drug-202206.json), the panel available from the mykrobe publication
+(https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7004237/
+https://figshare.com/articles/dataset/panel_final_tsv/7605395/1). This generated [this panel](data/gene_panel_20240125.tsv) for parsing `MUTATIONS_training_20240125.csv.gz`, resulting in 16 input files for catalogue construction in `data/training` with filenames beginning with "MUTATIONS".  
 
 
-### Catalogue generation
-Catomatic was used to generate per drug catalogues. See `main.py` for this pipeline. Binomial testing was chosen as the statistical test. An experiment was run to choose the best background and CI values for each drug catalogue construction using a grid search with custom scoring that prioritises sensitivity, specificity and coverage* in that order.  
 
-  *U predictions for samples that have phenotype R or S.
+### Catalogue generation and test set evaluation
+Catalogue file: [training_catalogue_1.1_202406.csv](results/training_catalogue_1.1_202406.csv)  
+script: [main.py](main.py)  
+Parameter grid search: [stats_inspection.Rmd](data/training/results/catomatic_training/stats_inspection.Rmd)
+
+The catalogue construction method evolved over time. The data in this repo is the result of using `catomatic` to generate per drug catalogues. See `main.py` for this pipeline.  Natural mutations and wildcard rules were used during construction, see files [natural_variants.json](data/natural_variants.json) and [wildcards.json](data/wildcards.json).  
+
+
+Binomial testing was chosen as the statistical test. An experiment was run to choose the best background and CI values for each drug catalogue construction:  
+1. For each drug, construct a catalogue using the training dataset and Binomial test and combination of:  
+
+	background = [0.005, 0.01, 0.03, 0.05, 0.07, 0.1, 0.15, 0.175, 0.2, 0.225, 0.25]  
+  CI = [0.9, 0.95, 0.99]  
+
+2. Then, run prediction (using piezo, see `main.py`) using each of the catalogues generated with the different parameter pairings
+
+3. Choose the best parameters for each drug catalogue construction using a grid search with custom scoring that prioritises sensitivity, specificity and coverage* in that order (*U predictions for samples that have phenotype R or S).
+
+The parameters chosen for each drug can be found in [chosen_parameters_all_drugs.csv](data/training/results/catomatic_training/chosen_parameters_all_drugs.csv).  
+
+Below is a graphical representation of the results for isoniazid and rifampicin (all drug results can be ). The chosen background rates and CIs for these two drugs were: 0.15, 0.95 and 0.075, 0.99 respectively.  
+
+-----  
+
+
+![INH_binomial](data/training/results/catomatic_training/prediction_stats_INH.png)
+![RIF_binomial](data/training/results/catomatic_training/prediction_stats_RIF.png)
+_The x axes represents the different background rates used to construct the RIF and INH catalogues and each vertical grouping represents the different CI values used. The y axes are normalised values for each of the horizontal experimental readouts of resistance prediction using each experimental catalogue of (from bottom) specificity, sensitivity, coverage, .SU (samples with S phenotype and U genotype prediction), .RU (samples with R phenotype and U genotype prediction). Parameters were chosen to using a custom scoring that prioritises sensitivity, specificity and coverage in that order._  
+
+
+---
+The table below outlines the number of classifying entries / rows per drug in the training catalogue. Note that one row does not equal one variant as wildcard rules (for _e.g._ indels, frameshifts) are present.
+
+  | drug | total_classifying_entries |
+  |------|------|
+  |  amikacin | 244 |  
+  | capreomycin | 55 |  
+  | delamanid | 52 |
+  | ethambutol | 651 |
+  | ethionamide | 386 |
+  | isoniazid | 490 |
+  | kanamycin | 234 |
+  | levofloxacin | 305 |
+  | linezolid | 26 |
+  | moxifloxacin | 285 |
+  | ofloxacin | 68 |
+  | rifampicin | 418 |
+  | streptomycin | 244 |
+
+
+The resulting training catalogue was evaluated using the training data and compared to resistance prediction using the WHOv2 catalogue and the training data.
+
+### --- A note on WHO catalogues  
+Several versions of both the first (WHOv1) and the second (WHOv2) catalogues were used along the analytical path of this project. The version used for these presented results is WHOv2
+[NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv](data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv), found [here](https://github.com/oxfordmmm/tuberculosis_amr_catalogues/blob/public/catalogues/NC_000962.3/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv).  
+This repo contains scripts and results for comparing WHO catalogues to any given catalogue in a sane format, see [compare_WHO_custom_catalogue.ipynb](data/compare_WHO_custom_catalogue.ipynb) for more on this.  
 
 
 WHO catalogue
@@ -61,21 +152,8 @@ with gnomonicus
 
 
 
-# Results  
-See `results` folder for the main data files, results, graphs and tables.
-
-1. Training data: 25033 samples, file = [training_data_20231122.tsv](creating_training_validation_sets/training_data_20231122.tsv)  
-2. Validation data: 8914 samples, file = [validation_set_20231110.pass.tsv](creating_training_validation_sets/validation_set_20231110.pass.tsv)  
-
-3. The ![training set phenotypes](creating_training_validation_sets/./creating_training_validation_sets/):   
 
 
-
-
-### Training and validation results
-I’ve been exploring the data and I attach a table showing the sources (n = 19) of these samples. You can see in the table that the majority of samples were phenotyped with MGIT (where phenotype method is stated).
- 
-I also attach a graph showing the breakdown of phenotypes for n = 22 drugs. Note, there is at least one drug phenotype for each sample in this set.
 
 
 ### Test set evaluation results
