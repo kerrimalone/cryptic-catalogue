@@ -17,18 +17,6 @@ import pandas as pd
 from pathlib import Path
 
 
-# def get_separator(filename):
-#     """
-#     Ascertain file separator
-#     """
-#     try:
-#         with open(filename, 'r') as file:
-#             dialect = csv.Sniffer().sniff(file.read(1024))
-#         return dialect.delimiter
-#     except csv.Error:
-#         raise ValueError(f"Unable to determine the separator for file '{filename}'")
-#
-
 def get_separator(filename):
     """
     Ascertain file separator
@@ -317,61 +305,6 @@ def mop_up(self):
             #print(f"{pheno['evid']}")
 
 
-# def fisher_binary(solos, mut, run_OR = False):
-#     # Count occurrences of "R" and "S" phenotypes for the mutation and without the mutation
-#     R_count = len(solos[(solos['phenotype'] == "R") & (solos['GENE_MUT'] == mut)])
-#     S_count = len(solos[(solos['phenotype'] == "S") & (solos['GENE_MUT'] == mut)])
-#     R_count_no_mut = len(solos[(~solos['GENE_MUT'].isna()) & (solos['GENE_MUT'] != mut) & (solos['phenotype'] == "R")])
-#     S_count_no_mut = len(solos[(~solos['GENE_MUT'].isna()) & (solos['GENE_MUT'] != mut) & (solos['phenotype'] == "S")])
-#
-#     # Build contingency table: ((R count, S count), (background R count, background S count))
-#     data = [[R_count, S_count], [R_count_no_mut, S_count_no_mut]]
-#
-#     # Calculate Fisher's exact test p-value with/without OR and CI calculation
-#     if run_OR == False:
-#         _, p_value = stats.fisher_exact(data)
-#
-#         if p_value < 0.05 or solos[solos.GENE_MUT == mut].phenotype.nunique() == 1:
-#             # if variant frequency is 1 simply call the phenotype, otherwise call phenotype at 95% confidence
-#             if R_count > S_count:
-#                 return {
-#                     "pred": "R",
-#                     "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-#                 }
-#             else:
-#                 return {
-#                     "pred": "S",
-#                     "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-#                 }
-#
-#         else:
-#             return {
-#                 "pred": "U",
-#                 "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-#             }
-#
-#     if run_OR == True:
-#         _, p_value = stats.fisher_exact(data)
-#
-#         if p_value < 0.05 or solos[solos.GENE_MUT == mut].phenotype.nunique() == 1:
-#             # if variant frequency is 1 simply call the phenotype, otherwise call phenotype at 95% confidence
-#             if R_count > S_count:
-#                 return {
-#                     "pred": "R",
-#                     "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-#                 }
-#             else:
-#                 return {
-#                     "pred": "S",
-#                     "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-# #                 }
-#
-#         else:
-#             return {
-#                 "pred": "U",
-#                 "evid": [[R_count, S_count], [R_count_no_mut, S_count_no_mut], [p_value, _]],
-#             }
-
 def fisher_binary(solos, mut, run_OR=False):
     # Count occurrences of "R" and "S" phenotypes for the mutation and without the mutation
     R_count = len(solos[(solos['phenotype'] == "R") & (solos['GENE_MUT'] == mut)])
@@ -619,17 +552,6 @@ def PiezoPredict(iso_df, catalogue_file, out_csv_matrix_file, out_text_error_fil
         print("Sensitivity:", sensitivity)
         print("Specificity:", specificity)
 
-    # # Check if the summary file exists
-    # if not os.path.exists(out_text_summary):
-    #     # Open the output summary file in write mode and write the header
-    #     with open(out_text_summary, 'w') as summary_file:
-    #         summary_file.write("File\tCatalogue_coverage_of_isolates\tSensitivity\tSpecificity\n")
-    #
-    # # Open the output summary file in append mode
-    # print(f"writing to text summary file: {out_text_summary}")
-    # with open(out_text_summary, 'a') as summary_file:
-    #     # Write the summary content on one line separated by tabs
-    #     summary_file.write(f"{out_csv_predictions_file}\t{isolate_cov}\t{sensitivity}\t{specificity}\n")
 
     if predictions.count("U") == 0:
         print(f"writing out prediction summaries: {out_csv_matrix_file}")

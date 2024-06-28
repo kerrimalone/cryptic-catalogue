@@ -110,8 +110,9 @@ Catalogue file: [training_catalogue_1.1_202406.csv](results/training_catalogue_1
 script: [main.py](main.py)  
 Parameter grid search: [stats_inspection.Rmd](data/training/results/catomatic_training/stats_inspection.Rmd)
 
-The catalogue construction method evolved over time. The data in this repo is the result of using `catomatic` to generate per drug catalogues. See `main.py` for this pipeline.  Natural mutations and wildcard rules were used during construction, see files [natural_variants.json](data/natural_variants.json) and [wildcards.json](data/wildcards.json).  
+The catalogue construction method evolved over time. The data in this repo is the result of employing `catomatic` to generate per drug catalogues. See `main.py` for the overall pipeline.  Natural mutations and wildcard rules were used during construction, see files [natural_variants.json](data/natural_variants.json) and [wildcards.json](data/wildcards.json).  
 
+Samples with drug phenotype QUALITY == LOW were excluded from the relevant catalogue construction.    
 
 Binomial testing was selected for the statistical analysis. An experiment was run to choose the best background and CI values for catalogue construction:  
 1. For each drug, construct a catalogue using the training dataset and Binomial test and a combination of:  
@@ -177,7 +178,9 @@ This repo contains scripts and results for comparing WHO catalogues to any given
 ---
 The resulting training catalogue was evaluated using the training data and compared to resistance prediction using the WHOv2 catalogue and the training data. `piezo` was used for prediction at FRS = [1, 0.8]. Below is a comparison of the performance of the two catalogues (FRS =1):  
 
-![training_eval](data/training/results/training_v_WHOv2.png)  
+
+![training_eval](data/training/results/training_v_WHOv2.png)
+
 Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions. Where the new catalogue demonstrates lower specificity in comparison to WHOv2 predictions (_e.g._ ethambutol, levofloxacin moxifloxacin, rifmapicin), we see an increase in coverage to counterbalance this. Where the WHOv2 catalogue appears to outperform, the differences between two are minimal.  
 
 
@@ -191,21 +194,25 @@ The data in the table is plotted below:
 Using gnomonicus with default parameters and FRS ≥ 0.9, predictions were performed on the validation dataset with both the new catalogue and the WHOv2 catalogue. The results and performance results can be found [here](results/catomatic_202406_validation_prediction_results.csv), [here](results/catomatic_202406_validation_prediction_results_WHOv2.csv) and [here](results/all_catalogue_validation_stats_202406.csv). Analysis notebook [here](data/validation/cryptic_catalogue_senspec.Rmd).
 
 The performance metrics are as follows:
-![validation_comparison_res](data/validation/new-v-WHOv2_validation.png)
+
+![validation_performance](data/validation/new-v-WHOv2_validation.png)
 
 Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions on the validation dataset. Where differences in the summary metrics occur, they are very small, typically appearing in the second or third decimal place. Like the training set evaluation, coverage can explain the difference in _e.g._ the lower specificity for streptomycin for the new catalogue -v- WHOv2.   
 
+The metrics above are represented in the following barplot:  
+
+![validation_comparison](/data/validation/compare_new_WHOv2_performance_barplot_validation.png)
 
 
+### Catalogue content: Comparing the new catalogue to WHOv2  
 
-### Catalogue content: Comparing WHOv2 to the new catalogue
 Analysis script [here](data/training/results/compare_WHO_training_venns.Rmd).  
 
 The WHOv2 catalogue format makes it difficult to compare in a like-for-like fashion with the new catalogue.  
-Both catalogues however, report the contingency table counts used for statistical testing and within these we have a measure of how many isolates were seen with a given variant.  
+Both catalogues however, report the contingency table counts used for pre-variant statistical testing and within these we have a measure of how many isolates were seen with a given variant and phenotype.  
 Therefore, these counts were used to assess whether the most common mutations in the new catalogue (variants seen in >10 isolates) are also present in the WHOv2 catalogue and whether they have the same phenotype classification label.  
 
-In the table below, the total number of variants seen in more than 10 isolates (training data) in the new catalogue are listed in the `total` column. The other columns are counts of phenotype combinations of the following format: 'new catalogue phenotype "." WHOv2 catalogue phenotype' _e.g._ R.R means that both the training and WHO2 catalogues predict resistance R. X means that the variant is missing from the respective catalogue.  
+In the table below, the total number of variants seen in more than 10 isolates (training data) in the new catalogue are listed in the `total` column. The other columns are counts of phenotype combinations of the following format: 'new catalogue phenotype "." WHOv2 catalogue phenotype' _e.g._ R.R means that the training and WHO2 catalogues predict resistance R. X means that the variant is missing from the respective catalogue.  
 
 Taking rifampicin as an example: 23 out of 25 of the top variants in the new rifampicin catalogue are also in the WHOv2 catalogue. 15 and 4 variants have the same phenotype classification label in both catalogues (R,S respectively). One of the top variants has a U label in the new catalogue versus an S label in the WHOv2 catalogue while 5 of the top variants in the new catalogue are not present in the WHOv2 catalogue (3 with R label, 2 with S label).
 

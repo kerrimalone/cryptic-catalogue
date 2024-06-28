@@ -3,7 +3,7 @@ import re
 import sys
 import subprocess
 import importlib.util
-sys.path.append("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue")
+sys.path.append("/github/cryptic-catalogue")
 from utils import *
 
 
@@ -577,35 +577,28 @@ class PredictResistance:
 
 #%%
 import traceback
-#
-# drugs_mutations = {
-#     "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-#     "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
-#     "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-#     "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
-#     "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
-#     "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-#     "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
-#     "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-#     "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-#     "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
-#     "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-#     "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-#     "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
-#     "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
-# }
-
 
 drugs_mutations = {
-    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
-    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
-    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
+    "amikacin":"/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "capreomycin":"/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
+    "ciprofloxacin":"/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "delamanid":"/data/training/MUTATIONS_training_ddn_subset.csv",
+    "ethambutol":"/data/training/MUTATIONS_training_embA_embB_subset.csv",
+    "ethionamide":"/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+    "isoniazid":"/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
+    "kanamycin":"/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "levofloxacin":"/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "linezolid":"/data/training/MUTATIONS_training_rplC_subset.csv",
+    "moxifloxacin":"/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "ofloxacin":"/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "rifampicin":"/data/training/MUTATIONS_training_rpoB_subset.csv",
+    "streptomycin":"/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 }
 
 
-with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
+
+
+with open('/data/drug_codes.json') as f:
     drug_codes = json.load(f)
 
 
@@ -613,15 +606,15 @@ with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_c
 for drug, mutations_file in drugs_mutations.items():
     try:
         mutations_processor = MutationsDataProcessor(drug=drug,
-                                                     genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
+                                                     genes_file="/data/gene_panel_20240125.tsv",
                                                      mutations_file=mutations_file,
                                                      prepare_catomatic_input=True)
 
         mutations = mutations_processor.process_input_data()
 
         phenotypes_processor = PhenotypesDataProcessor(drug=drug,
-                                                       genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
-                                                       phenotypes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/training_data_phenotypes_20240125.tsv",
+                                                       genes_file="/data/gene_panel_20240125.tsv",
+                                                       phenotypes_file="/data/training/training_data_phenotypes_20240125.tsv",
                                                        phenotype_quality="MEDIUM",
                                                        prepare_catomatic_input=True)
 
@@ -641,8 +634,8 @@ for drug, mutations_file in drugs_mutations.items():
                 build_catomatic_processor = BuildCatomaticCatalogueProcessor(
                     samples=phenotypes,
                     mutations=mutations,
-                    out_dir='/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training',
-                    path_to_catomatic="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/catomatic",
+                    out_dir='/data/training/results/catomatic_training',
+                    path_to_catomatic="catomatic",
                     test='Binomial',
                     background=this_background,
                     p=this_p,
@@ -651,8 +644,8 @@ for drug, mutations_file in drugs_mutations.items():
                     catalogue_name="catomatic_test",
                     version="1.1",
                     drug=drug,
-                    seeds="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/neutral_variants.json",
-                    wildcards="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/wildcards.json",
+                    seeds="/data/neutral_variants.json",
+                    wildcards="/data/wildcards.json",
                     save_to_piezo=True)
 
                 catomatic_catalogue = build_catomatic_processor.build_catalogue()
@@ -674,47 +667,40 @@ for drug, mutations_file in drugs_mutations.items():
 
 
 #%%%
-# drugs_mutations = {
-#     "amikacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-#     "capreomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
-#     "ciprofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-#     "delamanid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ddn_subset.csv",
-#     "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
-#     "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-#     "isoniazid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
-#     "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-#     "levofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-#     "linezolid":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rplC_subset.csv",
-#     "moxifloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
-#     "ofloxacin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gyrA_subset.csv",
-#     "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
-#     "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
-# }
-
-
 drugs_mutations = {
-    "ethambutol":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_embA_embB_subset.csv",
-    "ethionamide":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
-    "kanamycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_eis_rrs_subset.csv",
-    "rifampicin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_rpoB_subset.csv",
-    "streptomycin":"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
+    "amikacin":"/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "capreomycin":"/data/training/MUTATIONS_training_rrs_tlyA_subset.csv",
+    "ciprofloxacin":"/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "delamanid":"/data/training/MUTATIONS_training_ddn_subset.csv",
+    "ethambutol":"/data/training/MUTATIONS_training_embA_embB_subset.csv",
+    "ethionamide":"/data/training/MUTATIONS_training_ethA_fabG1_inhA_subset.csv",
+    "isoniazid":"/data/training/MUTATIONS_training_katG_inhA_ahpC_fabG1_subset.csv",
+    "kanamycin":"/data/training/MUTATIONS_training_eis_rrs_subset.csv",
+    "levofloxacin":"/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "linezolid":"/data/training/MUTATIONS_training_rplC_subset.csv",
+    "moxifloxacin":"/data/training/MUTATIONS_training_gyrA_gyrB_subset.csv",
+    "ofloxacin":"/data/training/MUTATIONS_training_gyrA_subset.csv",
+    "rifampicin":"/data/training/MUTATIONS_training_rpoB_subset.csv",
+    "streptomycin":"/data/training/MUTATIONS_training_gid_rpsL_rrs_subset.csv"
 }
 
-with open('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json') as f:
+
+
+with open('/data/drug_codes.json') as f:
     drug_codes = json.load(f)
 
 for drug, mutations_file in drugs_mutations.items():
     try:
         mutations_processor = MutationsDataProcessor(drug=drug,
-                                                     genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
+                                                     genes_file="/data/gene_panel_20240125.tsv",
                                                      mutations_file=mutations_file,
                                                      prepare_catomatic_input=False)
 
         mutations = mutations_processor.process_input_data()
 
         phenotypes_processor = PhenotypesDataProcessor(drug=drug,
-                                                       genes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/gene_panel_20240125.tsv",
-                                                       phenotypes_file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/training_data_phenotypes_20240125.tsv",
+                                                       genes_file="/data/gene_panel_20240125.tsv",
+                                                       phenotypes_file="/data/training/training_data_phenotypes_20240125.tsv",
                                                        phenotype_quality="MEDIUM",
                                                        prepare_catomatic_input=False)
 
@@ -728,7 +714,7 @@ for drug, mutations_file in drugs_mutations.items():
             print("Drug code not found")
             continue
 
-        results_directory = '/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training'
+        results_directory = '/data/training/results/catomatic_training'
         this_drug_directory = os.path.join(results_directory, drug)
         these_files = []
 
@@ -747,7 +733,7 @@ for drug, mutations_file in drugs_mutations.items():
                                                          drug=drug,
                                                          frs_threshold=prediction_frs_threshold,
                                                          outfile_prefix_string=f"{os.path.splitext(os.path.basename(this_file))[0]}_binomial",
-                                                         out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/")
+                                                         out_dir="/data/training/results/catomatic_training/")
 
                 # predictions = prediction_processor.predict_resistance()
                 # print(predictions)
@@ -758,103 +744,4 @@ for drug, mutations_file in drugs_mutations.items():
         print(f"An error occurred while processing {drug}: {e}")
         traceback.print_exc()
         continue
-
-
-
-#%%%
-
-#
-#         for threshold in [1, 0.8, 0.6]:
-#             summarytable_processor = CreateInputDataSummaryTable(mutations_df=mutations,
-#                                                                  filtered_phenotypes_df=phenotypes,
-#                                                                  frs_threshold=threshold,
-#                                                                  drug=drug,
-#                                                                  out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results")
-#
-#             summarytable = summarytable_processor.create_summary_table()
-#
-#         build_cat_processor = BuildResCatalogueProcessor(mutations_df=mutations,
-#                                                          filtered_phenotypes_df=phenotypes,
-#                                                          genbank_file="NC00962.3",
-#                                                          drug=drug,
-#                                                          frs_thresholds=[1.0, 0.8, 0.6],
-#                                                          catalogue_version="1.1",
-#                                                          out_dir= "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-#                                                          hardcoded=True,
-#                                                          piezo_wildcards=True)
-#
-#         all_data = build_cat_processor.return_all_data()
-#         build_cat_processor.build_catalogue()
-#
-#
-#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-#
-#             # Create the PredictResistance processor
-#             prediction_processor = PredictResistance(mutations_df=mutations,
-#                                                      phenotypes_df=phenotypes,
-#                                                      catalogue_file=catalogue_file,
-#                                                      catalogue_name="training_FRS1.0_catalogue",
-#                                                      drug=drug,
-#                                                      frs_threshold=prediction_frs_threshold,
-#                                                      outfile_prefix_string="foo",
-#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-#                                                      U_to_S=True)
-#
-#             predictions = prediction_processor.predict_resistance()
-#
-#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-#             prediction_processor = PredictResistance(mutations_df=mutations,
-#                                                      phenotypes_df=phenotypes,
-#                                                      catalogue_file=catalogue_file,
-#                                                      catalogue_name="training_FRS0.8_catalogue",
-#                                                      drug=drug,
-#                                                      frs_threshold=prediction_frs_threshold,
-#                                                      outfile_prefix_string="foo",
-#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-#                                                      U_to_S=True)
-#
-#             predictions = prediction_processor.predict_resistance()
-#
-#
-#         for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-#             catalogue_file = f"/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/{drug}/{drug}_FRS{prediction_frs_threshold}_catalogue.csv"
-#             prediction_processor = PredictResistance(mutations_df=mutations,
-#                                                      phenotypes_df=phenotypes,
-#                                                      catalogue_file=catalogue_file,
-#                                                      catalogue_name="training_FRS0.6_catalogue",
-#                                                      drug=drug,
-#                                                      outfile_prefix_string="foo",
-#                                                      frs_threshold=prediction_frs_threshold,
-#                                                      out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results",
-#                                                      U_to_S=True)
-#
-#             predictions = prediction_processor.predict_resistance()
-#         print(f"Done with {drug}")
-#     except Exception as e:
-#         print(f"An error occurred while processing {drug}: {e}")
-#         traceback.print_exc()
-#         continue
-#
-#
-#
-# #%%%
-# #WHO cat
-# for prediction_frs_threshold in [1.0, 0.8, 0.6]:
-#     prediction_processor = PredictResistance(mutations, phenotypes,
-#                                              "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-GTB-PCI-2021.7_v1.2_GARC1_RFUS.csv",
-#                                              catalogue_name="WHO_catalogue",
-#                                              drug="STM",
-#                                              frs_threshold=prediction_frs_threshold,
-#                                              out_dir="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results")
-#
-#     predictions = prediction_processor.predict_resistance()
-#     print(F"Done with WHO_catalogue and FRS: {prediction_frs_threshold}")
-# #%%%
-#
-#
-#
-#
-#
 
