@@ -44,10 +44,23 @@ libs_load(c("data.table", "jsonlite","tidyverse"))
 
 
 ```{r}
-calculate_metrics = function(vpred_file, vpheno_file) {
-  vpred = fread(vpred_file)
+calculate_metrics = function(vpred_file, vpheno_file, WHO_cat=FALSE, drug_codes_json=FALSE) {
   vpheno = fread(vpheno_file)
   
+  if (WHO_cat == TRUE){
+    vpred = fread(vpred_file)
+    drug_codes=fromJSON(drug_codes_json)
+    drug_codes = as.list(rev(setNames(names(drug_codes), unname(drug_codes))))
+    drug_codes_vec <- unlist(drug_codes)
+    vpred = vpred %>% 
+    mutate(drug = recode(drug, !!!drug_codes_vec)) 
+  }
+  
+  else {
+    vpred = fread(vpred_file)
+  }
+  
+
   # create merge columns
   # make sure drugs being compared are equal 
   vpred = vpred %>%
@@ -192,19 +205,18 @@ calculate_metrics = function(vpred_file, vpheno_file) {
 
 ```{r}
 
-VPRED = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results.csv"
+VPRED = "/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results.csv"
 
-WHO_1 = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/validation_gnomonicus_output_WHO.csv"
+WHO_2 = "/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results_WHOv2.csv"
 
-WHO_2 = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results_WHOv2.csv"
+VPHENO = "/github/cryptic-catalogue/creating_training_validation_sets/validation_data_phenotypes_20240207.tsv"
 
-VPHENO = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/creating_training_validation_sets/validation_data_phenotypes_20240207.tsv"
 
-drug_codes =fromJSON('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json')
 
 validation_results = calculate_metrics(VPRED, VPHENO)
-who_1_results = calculate_metrics(WHO_1, VPHENO)
-who_2_results = calculate_metrics(WHO_2, VPHENO)
+
+
+who_2_results = calculate_metrics(WHO_2, VPHENO, WHO_cat = TRUE, drug_codes_json ="/github/cryptic-catalogue/data/drug_codes.json" )
 
 vpheno = fread(VPHENO)
 
@@ -218,25 +230,22 @@ frs1.0_pred_table = fread(VPRED_FRS1) %>%
 validation_results = validation_results %>%
   mutate(catalogue = rep("new", nrow(validation_results)))
 
-who_1_results = who_1_results %>%
-  mutate(catalogue = rep("WHOv1.2", nrow(who_1_results)))
-
 
 who_2_results = who_2_results %>%
   mutate(catalogue = rep("WHOv2", nrow(who_2_results)))
 
 
-all_validation_results = rbind(validation_results, who_1_results, who_2_results)
+all_validation_results = rbind(validation_results, who_2_results)
 
-write.csv(all_validation_results, "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/all_catalogue_validation_stats_202406.csv", quote = F, row.names = F)
+write.csv(all_validation_results, "/github/cryptic-catalogue/data/validation/all_catalogue_validation_stats_202406.csv", quote = F, row.names = F)
 
 
-write.csv(validation_results, "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/validation_stats_catomatic202406.csv", quote = F, row.names = F)
+write.csv(validation_results, "/github/cryptic-catalogue/data/validation/validation_stats_catomatic202406.csv", quote = F, row.names = F)
 
-write.csv(who_1_results, "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/validation_stats_whov1.csv", quote = F, row.names = F)
+write.csv(who_1_results, "/github/cryptic-catalogue/data/validation/validation_stats_whov1.csv", quote = F, row.names = F)
 
-write.csv(who_2_results, "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/validation_stats_whov2.csv", quote = F, row.names = F)
+write.csv(who_2_results, "/github/cryptic-catalogue/data/validation/validation_stats_whov2.csv", quote = F, row.names = F)
 
-write.csv(pheno_table, "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/validation/validation_phenotypes_table.csv")
+write.csv(pheno_table, "/github/cryptic-catalogue/data/validation/validation_phenotypes_table.csv")
 ```
 

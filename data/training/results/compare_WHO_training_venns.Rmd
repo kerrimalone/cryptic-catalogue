@@ -45,9 +45,9 @@ libs_load(c("data.table", "tidyverse", "jsonlite", "ggvenn", "ggpubr"))
 Load in the catalogues for comparison
 
 ```{r}
-WHO = fread("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv")
-training = fread("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/training_catalogue_1.1_202406.csv")
-drug_codes =fromJSON('/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/drug_codes.json')
+WHO = fread("/github/cryptic-catalogue/data/NC_000962.3_WHO-UCN-TB-2023.5_v2.0_GARC1_RFUS.csv")
+training = fread("/github/cryptic-catalogue/data/training/results/catomatic_training/training_catalogue_1.1_202406.csv")
+drug_codes =fromJSON('/github/cryptic-catalogue/data/drug_codes.json')
 
 ```
 
@@ -359,16 +359,21 @@ for (this_drug in unique(training$DRUG)) {
  
 }      
 
-ggarrange(plotlist = these_plots_match[1:4])
-ggarrange(plotlist = these_plots_match[5:8])
-ggarrange(plotlist = these_plots_match[9:12])
+a = ggarrange(plotlist = these_plots_match[1:4])
+b = ggarrange(plotlist = these_plots_match[5:8])
+c = ggarrange(plotlist = these_plots_match[9:12])
 
 these_plots_match_training = these_plots_match
-these_plots_unmatch_training = these_plots_unmatch
+
+ggsave(a, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training_1.pdf", width = 11.46, height = 8.66, limitsize = F)
+
+ggsave(b, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training_2.pdf", width = 11.46, height = 8.66, limitsize = F)
+
+ggsave(c, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training_3.pdf", width = 11.46, height = 8.66, limitsize = F)
 
 
 top_table_training = as.data.frame.matrix(table(this_top_df_training$DRUG, this_top_df_training$PREDICTION)) %>%mutate(total = rowSums(.))
-write.csv(top_table_training, file = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training.csv", quote=F, row.names=T)
+write.csv(top_table_training, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_mutations_training_WHOv2.0_catomatic_training.csv", quote=F, row.names=T)
 
 
 this_top_df_training = this_top_df_training %>% 
@@ -376,7 +381,7 @@ this_top_df_training = this_top_df_training %>%
   rename("training" = x) %>%
   rename("WHOv2" = y)
 
-write.csv(this_top_df_training, file = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/compare_counts_top_mutations_training_WHOv2.0_catomatic_training.csv", quote=F, row.names=T)
+write.csv(this_top_df_training, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_counts_top_mutations_training_WHOv2.0_catomatic_training.csv", quote=F, row.names=T)
 
 
 ```
@@ -596,13 +601,13 @@ ggarrange(plotlist = these_plots_match[9:12])
 
 top_table = as.data.frame.matrix(table(this_top_df_who$DRUG, this_top_df_who$PREDICTION)) %>% mutate(total_top_mutations = rowSums(.))
 top_table$total_mutations = total_mutations
-write.csv(top_table, file = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_whov2_to_training_FRS1.0.csv", quote=F, row.names=T)
+write.csv(top_table, file = "/github/cryptic-catalogue/data/training/results/catomatic_training/compare_top_whov2_to_training_FRS1.0.csv", quote=F, row.names=T)
 
 
 this_top_df_who = this_top_df_who %>% 
   mutate(filt = as.numeric(x) + as.numeric(y))
 
-# write.csv(this_top_df_who, file = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/compare_counts_top_whov2_to_training_FRS1.0.csv", quote=F, row.names=T)
+# write.csv(this_top_df_who, file = "/github/cryptic-catalogue/data/training/results/compare_counts_top_whov2_to_training_FRS1.0.csv", quote=F, row.names=T)
 
 
 ```

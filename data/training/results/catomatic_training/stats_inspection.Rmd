@@ -47,7 +47,7 @@ libs_load(c("data.table", "devtools",
 
 ```{r}
 
-working_dir = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training"
+working_dir = "/github/cryptic-catalogue/data/training/results/catomatic_training"
 
 stats_files = list.files(working_dir, 
                          pattern="_prediction_stats.csv", 
@@ -103,6 +103,13 @@ for (this_file in stats_files){
   
   
   this_out_file = str_replace(this_file, "stats.csv", "stats.pdf")
+  
+  summary_table = summary_table %>%
+    filter(FRS_PREDICT != 0.6) %>%
+    mutate(FRS_PREDICT = case_when(FRS_PREDICT == 0.8 ~ 0.9,
+                                   TRUE ~ FRS_PREDICT))
+  
+  
   # Plot and facet by FRS_PREDICT and CI
   this_plot = ggplot(summary_table, 
                      aes(x = factor(BACKGROUND_RATE), y = Value, 
@@ -129,7 +136,7 @@ for (this_file in stats_files){
   these_stat_plots[[this_drug]] = this_plot
   }
 
-out_plots_file = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/prediction_stats_all.pdf"
+out_plots_file = "/github/cryptic-catalogue/data/training/results/catomatic_training/prediction_stats_all.pdf"
 
 pdf(out_plots_file)
 
@@ -145,7 +152,7 @@ dev.off()
 Choosing the best parameters for each drug using a grid search with custom scoring that prioritises sensitivity, specificity and coverage in that order
 ```{r}
 
-working_dir = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training"
+working_dir = "/github/cryptic-catalogue/data/training/results/catomatic_training"
 
 stats_files = list.files(working_dir, 
                          pattern="_prediction_stats.csv", 
@@ -195,7 +202,7 @@ for (this_file in stats_files){
 
 chosen_parameters = bind_rows(list_of_chosen_parameters)
 
-write.csv(chosen_parameters, file="/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/catomatic_training/chosen_parameters_all_drugs.csv",
+write.csv(chosen_parameters, file="/github/cryptic-catalogue/data/training/results/catomatic_training/chosen_parameters_all_drugs.csv",
           quote=F,
           row.names = F)
 
