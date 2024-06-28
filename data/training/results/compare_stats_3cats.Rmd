@@ -49,7 +49,6 @@ File has been pre-filtered to only contain data for drugs that are present in al
 ```{r}
 d = fread("/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/data/training/results/compare_stats_3cats.csv")
 
-
 ```
 
 
@@ -88,7 +87,8 @@ Second graphs will be two barcharts showing performance (sens and spec) per cata
 ```{r}
 
 g2_dat = d %>%
-  select(-resistant, -sensitive)
+  select(-resistant, -sensitive) %>%
+  filter(catalogue != "WHOv1.2")
 
 g2_dat$drug <- factor(g2_dat$drug, levels = rev(order_vector))
 
@@ -144,7 +144,7 @@ g2_spec = g2_spec +
         ymax = 3.75
     )
 
-sens_labels = as.numeric(seq(1, 0, by = -0.05))
+sens_labels = c(1.00, 0.95, 0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40, 0.35, 0.30, 0.25, 0.20, 0.15, 0.10, 0.05, 0.00)
 #sensitivity
 g2_sens = ggplot(g2_dat, aes(y = drug, x = sensitivity * -1 , fill = catalogue)) +
   geom_col(colour="black", width=0.5, position=position_dodge(0.5), alpha = 0.7) +
