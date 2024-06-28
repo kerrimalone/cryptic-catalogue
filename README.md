@@ -197,7 +197,7 @@ The performance metrics are as follows:
 
 ![validation_performance](data/validation/new-v-WHOv2_validation.png)
 
-Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions on the validation dataset. Where differences in the summary metrics occur, they are very small, typically appearing in the second or third decimal place. Like the training set evaluation, coverage can explain the difference in _e.g._ the lower specificity for streptomycin for the new catalogue -v- WHOv2.   
+Boxes highlighted in green represent the top result for a given category. Overall, predictions with the new catalogue are mostly on-par with or outperform the WHOv2 catalogue predictions on the validation dataset. Where differences in the summary metrics occur, they are very small, typically appearing in the third decimal place. Like the training set evaluation, coverage can explain the difference in _e.g._ the lower specificity for streptomycin for the new catalogue -v- WHOv2.   
 
 The metrics above are represented in the following barplot:  
 
