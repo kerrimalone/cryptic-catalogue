@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # Analysis Overview
 See `results` folder for the main data files, results, graphs and tables referred to in the text below (these will also be hyperlinked).  
 
