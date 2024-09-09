@@ -47,7 +47,7 @@ libs_load(c("tidyverse",
 Getting a list of genes for building catalogue from mykrobe panel https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7004237/ 
 https://figshare.com/articles/dataset/panel_final_tsv/7605395/1
 ```{r}
-ROOTDIR = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/"
+ROOTDIR = "cryptic-catalogue/"
 
 
 panel = fromJSON(paste0(ROOTDIR,"data/variant_to_resistance_drug-202206.json"))

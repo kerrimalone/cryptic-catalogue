@@ -47,7 +47,7 @@ libs_load(c("data.table", "tidyverse", "jsonlite", "ggvenn", "ggpubr",
 Load in stats file.  
 File has been pre-filtered to only contain data for drugs that are present in all 2 cats
 ```{r}
-d = fread("/github/cryptic-catalogue/data/training/results/compare_stats_3cats.csv")
+d = fread("/data/training/results/compare_stats_3cats.csv")
 ```
 
 
@@ -228,7 +228,7 @@ FQ barcharts
 
 Validation dataset
 ```{r}
-d = fread("/github/cryptic-catalogue/data/validation/all_catalogue_validation_stats_202406.csv")
+d = fread("/data/validation/all_catalogue_validation_stats_202406.csv")
 ```
 
 

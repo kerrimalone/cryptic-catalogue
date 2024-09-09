@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Analysis Overview
 See `results` folder for the main data files, results, graphs and tables referred to in the text below (these will also be hyperlinked).  
 
@@ -8,7 +13,7 @@ Please see [this html document](creating_training_validation_sets/drprg-data-sum
 
 #### Training
 Training data: 25033 samples, file = [training_data_20231122.tsv](results/training_data_20231122.tsv)  
-Analysis file:  [creating_training_validation_datasets.Rmd](results/creating_training_validation_datasets.Rmd)
+Analysis file:  [creating_training_validation_datasets.Rmd](creating_training_validation_sets/creating_training_validation_datasets.Rmd)
 
 The training data was generated from CRyPTIC data ([CRyPTIC_reuse_table_20231208.csv](https://ftp.ebi.ac.uk/pub/databases/cryptic/release_june2022/reuse/CRyPTIC_reuse_table_20231208.csv)) and mykrobe data ([mykrobe.20231121.tsv](creating_training_validation_sets/mykrobe.20231121.tsv)). 501 samples removed due to duplication between these two datasets and/or the validation set (see [here](creating_training_validation_sets/training_data_samples_excluded_duplicated_20231122.tsv) for those).
 
@@ -22,7 +27,7 @@ The training set phenotypes can be seen in the barplot below. Note that there is
 
 #### Validation  
 Validation data: 8914 samples, file = [validation_set_20231110.pass.tsv](creating_training_validation_sets/validation_set_20231110.pass.tsv)    
-Analysis file:  [creating_training_validation_datasets.Rmd](results/creating_training_validation_datasets.Rmd)
+Analysis file:  [creating_training_validation_datasets.Rmd](creating_training_validation_sets/creating_training_validation_datasets.Rmd)
 
 
 The validation set came from a curated a dataset of ~45k samples that includes samples used to train the WHO catalogue (n = 35.5k samples) and extra samples from publications/ENA (n = 9.5k samples). These were collected for the DrPRG publication by Hall _et al._ https://github.com/mbhall88/drprg.  

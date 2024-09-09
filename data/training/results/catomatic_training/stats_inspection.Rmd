@@ -47,7 +47,7 @@ libs_load(c("data.table", "devtools",
 
 ```{r}
 
-working_dir = "/github/cryptic-catalogue/data/training/results/catomatic_training"
+working_dir = "catomatic_training"
 
 stats_files = list.files(working_dir, 
                          pattern="_prediction_stats.csv", 
@@ -136,7 +136,7 @@ for (this_file in stats_files){
   these_stat_plots[[this_drug]] = this_plot
   }
 
-out_plots_file = "/github/cryptic-catalogue/data/training/results/catomatic_training/prediction_stats_all.pdf"
+out_plots_file = "/data/training/results/catomatic_training/prediction_stats_all.pdf"
 
 pdf(out_plots_file)
 
@@ -152,7 +152,7 @@ dev.off()
 Choosing the best parameters for each drug using a grid search with custom scoring that prioritises sensitivity, specificity and coverage in that order
 ```{r}
 
-working_dir = "/github/cryptic-catalogue/data/training/results/catomatic_training"
+working_dir = "/data/training/results/catomatic_training"
 
 stats_files = list.files(working_dir, 
                          pattern="_prediction_stats.csv", 
@@ -202,7 +202,7 @@ for (this_file in stats_files){
 
 chosen_parameters = bind_rows(list_of_chosen_parameters)
 
-write.csv(chosen_parameters, file="/github/cryptic-catalogue/data/training/results/catomatic_training/chosen_parameters_all_drugs.csv",
+write.csv(chosen_parameters, file="/data/training/results/catomatic_training/chosen_parameters_all_drugs.csv",
           quote=F,
           row.names = F)
 

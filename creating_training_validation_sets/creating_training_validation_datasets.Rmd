@@ -2,7 +2,9 @@
 title: "Creating training and validation datasets"
 author: "Kerri M Malone"
 date: "2023-11-22"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r}
@@ -45,12 +47,12 @@ libs_load(c("tidyverse",
 
 
 ```{r echo = FALSE}
-ROOTDIR = "/Users/kmalone/macbook_m1_backup/github/cryptic-catalogue/"
+ROOTDIR = "cryptic-catalogue/"
 
 # Load in files
 cryptic = fread(paste0(ROOTDIR, "data/CRyPTIC_reuse_table_20231208.csv"))
-mykrobe = fread(paste0(ROOTDIR, "drprg-paper-preprint/mykrobe.20231121.tsv"))
-validation = fread(paste0(ROOTDIR, "drprg-paper-preprint/validation_set_20231110.pass.tsv"))
+mykrobe = fread(paste0(ROOTDIR, "creating_training_validation_sets/mykrobe.20231121.tsv"))
+validation = fread(paste0(ROOTDIR, "creating_training_validation_sets/validation_set_20231110.pass.tsv"))
 
 ```
 We have three datasets at the moment: cryptic, mykrobe and validation.  
@@ -73,7 +75,7 @@ training_ids_in_common = intersect(mykrobe_ids, cryptic_ids)
 training_ids_in_common_df = as.data.frame(training_ids_in_common)
 names(training_ids_in_common_df) = "ena_run"
 
-# write_tsv(training_ids_in_common_df, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_samples_excluded_duplicated_20231122.tsv"))
+# write_tsv(training_ids_in_common_df, file = paste0(ROOTDIR, "creating_training_validation_sets/training_data_samples_excluded_duplicated_20231122.tsv"))
 
 
 ```
@@ -98,7 +100,7 @@ drug_codes = c("AMI", "BDQ", "CAP","CIP","CFZ",
 drug_translation = as.data.frame(cbind(drugs, drug_codes))
 
 drug_phenotype_quality = paste0(drugs, "_phenotype_quality")
-#write_tsv(drug_translation, file = paste0(ROOTDIR, "drprg-paper-preprint/drug_translation_table_20231122.tsv"))
+#write_tsv(drug_translation, file = paste0(ROOTDIR, "creating_training_validation_sets/drug_translation_table_20231122.tsv"))
 
 colnames_order = c("ena_run", "ena_sample", "ena_project", "dataset", drugs, drug_phenotype_quality)
 
@@ -226,11 +228,11 @@ training_data %>% filter(ena_sample %in% validation_ids_in_common)%>%
 
 training_data = training_data %>%
   filter(ena_sample %notin% validation_ids_in_common)
-#write_tsv(training_data, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_20240125.tsv"))
+#write_tsv(training_data, file = paste0(ROOTDIR, "creating_training_validation_sets/training_data_20240125.tsv"))
 
 validation_ids_in_common_df = as.data.frame(validation_ids_in_common)
 names(validation_ids_in_common_df) = "ena_run"
-# write_tsv(validation_ids_in_common_df, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_samples_excluded_validation_duplicated_20231122.tsv"))
+# write_tsv(validation_ids_in_common_df, file = paste0(ROOTDIR, "creating_training_validation_sets/training_data_samples_excluded_validation_duplicated_20231122.tsv"))
 
 
 
@@ -257,7 +259,7 @@ training_data_long = drug_subset_pivot %>%
   select(ena_run.x, ena_sample.x, ena_project.x, dataset.x, drug.x, phenotype, phenotype_quality) %>% 
     rename_with(~ gsub(".x", "", .), everything())
 
-#write_tsv(training_data_long, file = paste0(ROOTDIR, "drprg-paper-preprint/training_data_phenotypes_20240125.tsv"))
+#write_tsv(training_data_long, file = paste0(ROOTDIR, "creating_training_validation_sets/training_data_phenotypes_20240125.tsv"))
 
 ### Make long phenotype table for input for validation
 validation_long = validation %>%
@@ -293,7 +295,7 @@ validation_long = validation_subset_pivot %>%
   select(ena_run.x, ena_sample.x, ena_project.x, dataset.x, drug.x, phenotype, phenotype_quality) %>% 
     rename_with(~ gsub(".x", "", .), everything())
 
-#write_tsv(validation_long, file = paste0(ROOTDIR, "drprg-paper-preprint/validation_data_phenotypes_20240207.tsv"))
+#write_tsv(validation_long, file = paste0(ROOTDIR, "creating_training_validation_sets/validation_data_phenotypes_20240207.tsv"))
 
 ```
 
@@ -330,8 +332,8 @@ training_data_barplot = training_data %>%
        caption = "There is at least one drug phenotype for each sample") +
   scale_fill_manual(values = c("#ae0e52", "#6d979c", "grey90"))
 
-ggsave(training_data_barplot, filename = paste0(ROOTDIR, "drprg-paper-preprint/training_data_barplot_20231122.pdf"),
-       width = 12.2, height = 6.1)
+#ggsave(training_data_barplot, filename = paste0(ROOTDIR, "creating_training_validation_sets/training_data_barplot_20231122.pdf"),
+#       width = 12.2, height = 6.1)
 
 ```
 Make upset plot for resistant phenotypes by regimen. 
@@ -354,7 +356,7 @@ mdr_plotdata = mdr_plotdata %>%
   select(all_of(plot_order))
 n_samples_mdr = nrow(mdr_plotdata)
 
-pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/MDR_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+#pdf(file=paste0(ROOTDIR, "creating_training_validation_sets/MDR_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
 UpSetR::upset(mdr_plotdata, keep.order = T, nsets = 500, nintersects = 84, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
  = "#ae0e52")
 grid.text("MDR samples", x = 0.65, y = 0.95,
@@ -363,7 +365,7 @@ grid.text(paste0("n = ", n_samples_mdr), x = 0.65, y = 0.91,
           gp = gpar(fontsize = 13))
 grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
           gp = gpar(fontsize = 9))
-dev.off()
+#dev.off()
 
 
 # Pre-XDR TB: caused by an organism that is resistant to isoniazid, rifampin, and a fluoroquinolone OR by an organism that is resistant to isoniazid, rifampin, and a second-line injectable (amikacin, capreomycin, and kanamycin)
@@ -385,7 +387,7 @@ preXDR_FQ_plotdata = preXDR_FQ_plotdata %>%
   select(all_of(plot_order))
 n_samples_preXDR_FQ = nrow(preXDR_FQ_plotdata)
 
-pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/preXDR_FQ_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+#pdf(file=paste0(ROOTDIR, "creating_training_validation_sets/preXDR_FQ_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
 UpSetR::upset(preXDR_FQ_plotdata, keep.order = T, nsets = 500, nintersects = 38, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
  = "#ae0e52")
 grid.text("preXDR samples (FQ resistant)", x = 0.65, y = 0.95,
@@ -394,7 +396,7 @@ grid.text(paste0("n = ", n_samples_preXDR_FQ), x = 0.65, y = 0.91,
           gp = gpar(fontsize = 13))
 grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
           gp = gpar(fontsize = 9))
-dev.off()
+#dev.off()
 
 
 
@@ -417,7 +419,7 @@ preXDR_AG_plotdata = preXDR_AG_plotdata %>%
 
 n_samples_preXDR_AG = nrow(preXDR_AG_plotdata)
 
-pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/preXDR_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+#pdf(file=paste0(ROOTDIR, "creating_training_validation_sets/preXDR_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
 UpSetR::upset(preXDR_AG_plotdata, keep.order = T, nsets = 500, nintersects = 36, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	= "#ae0e52")
 grid.text("preXDR samples (AG resistant)", x = 0.65, y = 0.95,
           gp = gpar(fontsize = 20))
@@ -425,7 +427,7 @@ grid.text(paste0("n = ", n_samples_preXDR_AG), x = 0.65, y = 0.91,
           gp = gpar(fontsize = 13))
 grid.text("interactions with >5 isolates displayed", x = 0.65, y = 0.88,
           gp = gpar(fontsize = 9))
-dev.off()
+#dev.off()
 
 
 # Extensively drug-resistant TB (XDR TB) is a rare type of multidrug-resistant tuberculosis (MDR TB) that is resistant to isoniazid, rifampin, a fluoroquinolone, and a second-line injectable (amikacin, capreomycin, and kanamycin) OR isoniazid, rifampin, a fluoroquinolone, and bedaquiline or linezolid.
@@ -447,7 +449,7 @@ XDR_plotdata = XDR_plotdata %>%
 
 n_samples_XDR= nrow(XDR_plotdata)
 
-pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/XDR_FQ_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+#pdf(file=paste0(ROOTDIR, "creating_training_validation_sets/XDR_FQ_AG_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
 UpSetR::upset(XDR_plotdata, keep.order = T, nsets = 500, nintersects = 39, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
  = "#ae0e52")
 grid.text("XDR samples (FQ + AG resistant)", x = 0.65, y = 0.95,
@@ -456,7 +458,7 @@ grid.text(paste0("n = ", n_samples_XDR), x = 0.65, y = 0.91,
           gp = gpar(fontsize = 13))
 grid.text("interactions with >3 isolates displayed", x = 0.65, y = 0.88,
           gp = gpar(fontsize = 9))
-dev.off()
+#dev.off()
 
 
 
@@ -480,7 +482,7 @@ XDR_BL_plotdata = XDR_BL_plotdata %>%
 
 n_samples_XDR_BL = nrow(XDR_BL_plotdata)
 
-pdf(file=paste0(ROOTDIR, "drprg-paper-preprint/XDR_FQ_BDQ_LZD_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
+#pdf(file=paste0(ROOTDIR, "creating_training_validation_sets/XDR_FQ_BDQ_LZD_training_upset_plot_20231122.pdf"), width = 16.15, height = 7.55)
 UpSetR::upset(XDR_BL_plotdata, keep.order = T, nsets = 500, nintersects = 31, sets = rev(plot_order), mb.ratio = c(0.5,0.5), order.by = c("freq"), sets.bar.color	
  = "#ae0e52")
 grid.text("XDR samples (FQ + BDQ/LZD resistant)", x = 0.65, y = 0.95,
@@ -489,11 +491,11 @@ grid.text(paste0("n = ", n_samples_XDR_BL), x = 0.65, y = 0.91,
           gp = gpar(fontsize = 13))
 grid.text("interactions with >2 isolates displayed", x = 0.65, y = 0.88,
           gp = gpar(fontsize = 9))
-dev.off()
+#dev.off()
 ```
 Summary text file. 
 ```{r}
-# file_conn <- file(paste0(ROOTDIR, "drprg-paper-preprint/summary_training_validation_datasets_20231122.txt"), open = "w")
+# file_conn <- file(paste0(ROOTDIR, "creating_training_validation_sets/summary_training_validation_datasets_20231122.txt"), open = "w")
 # 
 # content <- c("Training data: 25033 samples, file = training_data_20240125.tsv (older version:training_data_20231122.tsv)",
 #              "Validation data: 8914 samples, file = validation_set_20231110.pass.tsv",

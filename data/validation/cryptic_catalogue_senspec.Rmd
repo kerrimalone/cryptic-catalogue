@@ -205,11 +205,11 @@ calculate_metrics = function(vpred_file, vpheno_file, WHO_cat=FALSE, drug_codes_
 
 ```{r}
 
-VPRED = "/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results.csv"
+VPRED = "/data/validation/catomatic_202406_validation_prediction_results.csv"
 
-WHO_2 = "/github/cryptic-catalogue/data/validation/catomatic_202406_validation_prediction_results_WHOv2.csv"
+WHO_2 = "/data/validation/catomatic_202406_validation_prediction_results_WHOv2.csv"
 
-VPHENO = "/github/cryptic-catalogue/creating_training_validation_sets/validation_data_phenotypes_20240207.tsv"
+VPHENO = "/creating_training_validation_sets/validation_data_phenotypes_20240207.tsv"
 
 
 
